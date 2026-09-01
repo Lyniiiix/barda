@@ -15,5 +15,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js).*)"],
+  // Les icônes et le manifeste doivent rester lisibles avant connexion,
+  // sinon l'icône de l'écran d'accueil iOS ne se charge jamais.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest).*)"],
 };
