@@ -35,24 +35,34 @@ Si un QR ne se lit pas une fois imprimé, le bouton **QR code seul** réduit le 
 nu (`IR7MCX`) : le QR devient beaucoup moins dense, mais l'appareil photo natif n'ouvre plus
 la fiche. **Sens A / Sens B** retourne l'étiquette de 180° si elle sort à l'envers.
 
-## Imprimer depuis l'iPhone
+## Imprimer — qui peut, et comment
 
-Safari **n'expose pas le Bluetooth** aux pages web (Web Bluetooth : Chrome, Edge, Opera, pas
-Safari ni Firefox). Deux chemins, au choix :
+Safari **n'expose pas le Bluetooth** aux pages web, et ne le fera pas — ni sur iPhone, ni sur
+Mac (Web Bluetooth : Chrome, Edge, Opera ; pas Safari, pas Firefox). D'où trois chemins, que la
+page choisit toute seule :
 
-1. **Bluefy** (App Store) — un navigateur qui implémente Web Bluetooth. Ouvrir Barda dedans :
-   le bouton « Imprimer (Bluetooth) » apparaît et parle directement à la D11s. Rien à installer
-   côté serveur.
-2. **La file d'impression** — le bouton « File d'impression » range le PNG côté serveur ; sur
-   le Mac, `npm run spool` le récupère et le dépose dans `~/MCP/fichero-printer/queue`, que
-   `spooler.sh` envoie à l'imprimante.
+| Contexte | Chemin | Ce qu'il faut |
+|---|---|---|
+| App iOS [`barda-ios`](../barda-ios) | pont natif → CoreBluetooth | l'app installée |
+| Chrome / Edge, sur Mac ou Android | Web Bluetooth | rien |
+| Safari, ou n'importe quoi d'autre | file d'impression → relais Mac | `npm run spool` qui tourne |
+
+`hasNativePrinter()` (`src/lib/native.ts`) arbitre entre les deux premiers ; le bouton
+« File d'impression » reste toujours affiché en secours. **Bluefy** (navigateur Web Bluetooth de
+l'App Store) reste une quatrième voie sur iPhone, si l'app native n'est pas installée.
+
+Le relais imprime lui-même via la CLI `fichero` — un seul terminal à laisser ouvert :
 
 ```bash
 BARDA_URL=https://barda.example.com BARDA_PRINT_TOKEN=… npm run spool
 ```
 
-Le protocole BLE vient de [`fichero-printer`](https://github.com/0xmh/fichero-printer)
-(`src/lib/fichero/`, copié tel quel, sans dépendance).
+⚠️ **Depuis Terminal.app**, pas depuis launchd : macOS n'accorde le Bluetooth qu'aux processus
+dont le parent y a droit. `--queue-only` se contente de déposer les PNG dans
+`~/MCP/fichero-printer/queue`, pour l'ancien `spooler.sh`.
+
+Le protocole BLE vient de [`fichero-printer`](https://github.com/0xmh/fichero-printer) :
+`src/lib/fichero/` côté web (copié tel quel, sans dépendance), et porté en Swift dans l'app iOS.
 
 ## Développement
 
