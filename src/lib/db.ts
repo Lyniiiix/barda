@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
+PRAGMA busy_timeout = 5000;
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS lots (
@@ -75,7 +76,22 @@ function open(): DatabaseSync {
   return db;
 }
 
-export const db: DatabaseSync = globalThis.__bardaDb ?? (globalThis.__bardaDb = open());
+/**
+ * Ouverture paresseuse : `next build` importe ces modules dans plusieurs workers
+ * parallèles rien que pour lire la config des routes. Ouvrir la base à
+ * l'import les faisait se marcher dessus (« Failed to collect page data »).
+ * Ici, le fichier n'est touché qu'à la première vraie requête.
+ */
+function handle(): DatabaseSync {
+  return (globalThis.__bardaDb ??= open());
+}
+
+export const db = new Proxy({} as DatabaseSync, {
+  get(_target, prop) {
+    const value = Reflect.get(handle(), prop);
+    return typeof value === "function" ? value.bind(handle()) : value;
+  },
+}) as DatabaseSync;
 
 export const now = () => new Date().toISOString();
 
