@@ -114,7 +114,19 @@ npm run dev     # http://localhost:3210
 Base **SQLite** par `node:sqlite` (intégré à Node ≥ 22) — aucune dépendance native, aucun ORM,
 le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage.
 
-## Déploiement (Coolify)
+## Déploiement
+
+En production sur **https://barda.example.com** — conteneur posé à la main sur le VPS, derrière le
+Traefik existant. Redéployer :
+
+```bash
+./scripts/deploy-vps.sh
+```
+
+Reconstruit l'image sur le VPS depuis `HEAD` et remplace le conteneur, sans toucher aux secrets
+(`/opt/barda/barda.env`) ni aux données (`/opt/barda/data`).
+
+### Reprise par Coolify
 
 Comme `tools` : projet Coolify, source GitHub, `Dockerfile`, push sur `main` → redéploiement.
 
