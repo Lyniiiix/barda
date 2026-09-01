@@ -14,18 +14,21 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     BARDA_DB=/data/barda.db
 
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 \
+RUN apk add --no-cache su-exec \
+ && addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 \
  && mkdir -p /data && chown nextjs:nodejs /data
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-USER nextjs
 VOLUME /data
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+# L'entrypoint démarre en root le temps de réparer /data, puis passe en `nextjs`.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
