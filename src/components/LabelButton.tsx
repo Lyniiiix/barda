@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { ImageEncoder, instantiateClient, LabelType, type FicheroClient } from "@/lib/fichero";
+import { hasNativePrinter, nativeCall, toBase64 } from "@/lib/native";
 
 const W = 240; // 30 mm à 203 dpi
 const H = 96;  // 12 mm = largeur de la tête d'impression
@@ -137,8 +138,10 @@ export default function LabelButton({ code, name, sub = "" }: Props) {
   const [flip, setFlip] = useState(false);
   const [urlMode, setUrlMode] = useState(true);
   const [hasBle, setHasBle] = useState(false);
+  const [native, setNative] = useState(false);
 
   useEffect(() => {
+    setNative(hasNativePrinter());
     setHasBle(typeof navigator !== "undefined" && "bluetooth" in navigator);
     setFlip(localStorage.getItem("barda.flip") === "1");
     setUrlMode(localStorage.getItem("barda.qrCode") !== "1");
@@ -149,6 +152,22 @@ export default function LabelButton({ code, name, sub = "" }: Props) {
   }, [code, name, sub, urlMode]);
 
   useEffect(() => { void redraw(); }, [redraw]);
+
+  /** Dans l'app iOS, c'est Swift qui parle à l'imprimante : Safari n'a pas de Bluetooth. */
+  const printNative = async () => {
+    setBusy(true);
+    setMsg("Envoi à l'imprimante…");
+    const encoded = ImageEncoder.encodeCanvas(toPortrait(ref.current!, flip), "top");
+    const res = await nativeCall({
+      action: "print",
+      rows: encoded.rows,
+      raster: toBase64(encoded.rowsData),
+      copies,
+      density: 2,
+    });
+    setMsg(res.ok ? "Imprimé ✓" : `Échec : ${res.message}`);
+    setBusy(false);
+  };
 
   const print = async () => {
     setBusy(true);
@@ -221,15 +240,15 @@ export default function LabelButton({ code, name, sub = "" }: Props) {
       </div>
 
       <div className="row" style={{ marginTop: 10 }}>
-        {hasBle && (
-          <button className="btn primary wide" onClick={print} disabled={busy}>
-            {busy ? "…" : "🖨 Imprimer (Bluetooth)"}
+        {(native || hasBle) && (
+          <button className="btn primary wide" onClick={native ? printNative : print} disabled={busy}>
+            {busy ? "…" : "🖨 Imprimer"}
           </button>
         )}
         <button className="btn wide" onClick={queue} disabled={busy}>File d&apos;impression</button>
       </div>
 
-      {!hasBle && (
+      {!native && !hasBle && (
         <p className="small muted" style={{ marginTop: 8 }}>
           Ce navigateur n&apos;expose pas le Bluetooth. Sur iPhone, ouvrir Barda dans <b>Bluefy</b> pour
           imprimer directement, sinon passer par la file (le Mac imprime).
