@@ -3,7 +3,7 @@ import { COOKIE_NAME, verifyToken } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/print-queue")) {
+  if (pathname.startsWith("/login") || pathname.startsWith("/api/print-queue") || pathname.startsWith("/api/mcp")) {
     return NextResponse.next();
   }
   if (await verifyToken(req.cookies.get(COOKIE_NAME)?.value)) return NextResponse.next();

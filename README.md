@@ -64,6 +64,36 @@ dont le parent y a droit. `--queue-only` se contente de déposer les PNG dans
 Le protocole BLE vient de [`fichero-printer`](https://github.com/0xmh/fichero-printer) :
 `src/lib/fichero/` côté web (copié tel quel, sans dépendance), et porté en Swift dans l'app iOS.
 
+## Le serveur MCP
+
+`POST /api/mcp` — un serveur MCP (JSON-RPC, transport HTTP, sans état) servi par l'app
+elle-même, pour que Claude puisse consulter et tenir l'inventaire. Il vit avec les données :
+rien à lancer sur le Mac, et il reste joignable de n'importe où.
+
+```bash
+claude mcp add --transport http barda https://barda.example.com/api/mcp \
+  --header "Authorization: Bearer $BARDA_MCP_TOKEN"
+```
+
+Douze outils, en français comme le reste :
+
+| | |
+|---|---|
+| `inventaire_apercu` | vue d'ensemble — totaux, lots, projets, ce qui cloche. Le point d'entrée. |
+| `objets_chercher` · `objet_lire` | recherche et détail |
+| `lots_lister` · `projets_lister` | les contenants et les usages |
+| `projet_besoins` | ce qu'il faut pour un projet, **groupé par lot** — donc quoi embarquer |
+| `objet_ajouter` · `objet_modifier` | création et modification partielle |
+| `objet_ranger` · `stock_ajuster` | changer de lot, décompter un consommable |
+| `lot_creer` · `projet_creer` | nouveaux contenants et projets |
+
+**Aucun outil ne supprime.** Un modèle peut se tromper de code, et un objet effacé ne se
+retrouve pas ; les suppressions restent à faire dans l'interface.
+
+Sans `BARDA_MCP_TOKEN` défini, le point d'accès **refuse tout** — il ne s'ouvre jamais par
+défaut. Les écritures passent par `src/lib/mutations.ts`, exactement le même code que les
+formulaires de l'app : pas de seconde définition de « modifier un objet » qui pourrait diverger.
+
 ## Développement
 
 ```bash
@@ -78,7 +108,8 @@ npm run dev     # http://localhost:3210
 | `BARDA_PASSWORD` | mot de passe unique d'accès |
 | `BARDA_SECRET` | clé HMAC du cookie de session (1 an) |
 | `BARDA_DB` | chemin du fichier SQLite |
-| `BARDA_PRINT_TOKEN` | jeton du spooler (en-tête `x-barda-token`) |
+| `BARDA_PRINT_TOKEN` | jeton du relais d'impression (en-tête `x-barda-token`) |
+| `BARDA_MCP_TOKEN` | jeton du serveur MCP (en-tête `Authorization: Bearer …`) |
 
 Base **SQLite** par `node:sqlite` (intégré à Node ≥ 22) — aucune dépendance native, aucun ORM,
 le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage.

@@ -98,7 +98,7 @@ export function stats() {
     lots: one("SELECT COUNT(*) AS n FROM lots"),
     projects: one("SELECT COUNT(*) AS n FROM projects"),
     sansLot: one("SELECT COUNT(*) AS n FROM items WHERE lot_id IS NULL"),
-    aVoir: one("SELECT COUNT(*) AS n FROM items WHERE status IN ('à réparer','manquant','prêté')"),
+    aVoir: one("SELECT COUNT(*) AS n FROM items WHERE status <> 'ok'"),
   };
 }
 
