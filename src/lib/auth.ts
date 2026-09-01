@@ -1,8 +1,22 @@
 const COOKIE = "barda_session";
 const TTL_DAYS = 365;
 
+const PROD = process.env.NODE_ENV === "production";
+
 function secret(): string {
-  return process.env.BARDA_SECRET || "barda-dev-secret";
+  const v = process.env.BARDA_SECRET;
+  if (!v && PROD) throw new Error("BARDA_SECRET absent");
+  return v || "barda-dev-secret";
+}
+
+/**
+ * En production, pas de mot de passe par défaut : sur un domaine public, un
+ * oubli de variable d'environnement ouvrirait l'inventaire à tout le monde.
+ */
+export function expectedPassword(): string | null {
+  const v = process.env.BARDA_PASSWORD;
+  if (v) return v;
+  return PROD ? null : "barda";
 }
 
 async function sign(payload: string): Promise<string> {

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { makeToken } from "@/lib/auth";
+import { expectedPassword, makeToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,9 @@ async function login(fd: FormData) {
   "use server";
   const pwd = String(fd.get("password") ?? "");
   const next = String(fd.get("next") ?? "/") || "/";
-  if (pwd !== (process.env.BARDA_PASSWORD || "barda")) redirect(`/login?e=1&next=${encodeURIComponent(next)}`);
+  const expected = expectedPassword();
+  if (!expected) redirect(`/login?e=2&next=${encodeURIComponent(next)}`);
+  if (pwd !== expected) redirect(`/login?e=1&next=${encodeURIComponent(next)}`);
 
   const t = await makeToken();
   (await cookies()).set(t.name, t.value, {
@@ -30,7 +32,13 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
           <label>Mot de passe</label>
           <input name="password" type="password" autoFocus autoComplete="current-password" />
         </div>
-        {sp.e && <p className="small" style={{ color: "var(--bad)" }}>Mot de passe incorrect.</p>}
+        {sp.e === "1" && <p className="small" style={{ color: "var(--bad)" }}>Mot de passe incorrect.</p>}
+        {sp.e === "2" && (
+          <p className="small" style={{ color: "var(--bad)" }}>
+            `BARDA_PASSWORD` n&apos;est pas défini côté serveur — personne ne peut entrer tant que
+            la variable n&apos;est pas posée dans Coolify.
+          </p>
+        )}
         <button className="btn primary wide" type="submit">Entrer</button>
       </form>
     </div>
