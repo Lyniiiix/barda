@@ -1,12 +1,25 @@
 #!/bin/sh
-# Déploie l'état courant de `main` sur le VPS, sans passer par Coolify.
+# ⚠️ OBSOLÈTE depuis le 02/09/2026 : l'application est passée sous Coolify.
+# Lancer ce script recrée un conteneur concurrent qui réclame le même domaine
+# que celui de Coolify — deux routeurs Traefik sur le même Host(). C'est arrivé.
 #
-#   ./scripts/deploy-vps.sh
+# Déployer maintenant = bouton « Deploy » dans Coolify, ou un push sur `main`
+# si le déploiement automatique est activé.
+#
+# Conservé uniquement comme filet si Coolify tombe : ./scripts/deploy-vps.sh --secours
 #
 # Construit l'image sur le VPS à partir d'une archive de HEAD, puis remplace le
 # conteneur. Les secrets (/opt/barda/barda.env) et les données (/opt/barda/data)
 # ne sont jamais touchés.
 set -e
+
+if [ "$1" != "--secours" ]; then
+  echo "Refus : Coolify gère désormais le déploiement de Barda."
+  echo "Utilise le bouton « Deploy » dans Coolify, ou pousse sur main."
+  echo "Pour forcer malgré tout (Coolify en panne) : $0 --secours"
+  echo "⚠️ Supprime d'abord le conteneur Coolify, sinon les deux se disputeront le domaine."
+  exit 1
+fi
 
 HOST="${BARDA_HOST:-root@vps.example.com}"
 DOMAIN="${BARDA_DOMAIN:-barda.example.com}"
