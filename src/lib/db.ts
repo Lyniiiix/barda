@@ -52,11 +52,16 @@ CREATE TABLE IF NOT EXISTS item_projects (
 
 CREATE TABLE IF NOT EXISTS print_queue (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  code       TEXT    NOT NULL DEFAULT '',
   label      TEXT    NOT NULL,
   png        TEXT    NOT NULL,
   copies     INTEGER NOT NULL DEFAULT 1,
-  state      TEXT    NOT NULL DEFAULT 'en_attente',
-  created_at TEXT    NOT NULL
+  -- file : dans le panier, personne n'imprime tout seul
+  -- relais : confié au Mac, qui l'imprimera à son prochain relevé
+  -- imprimé : sorti
+  state      TEXT    NOT NULL DEFAULT 'file',
+  created_at TEXT    NOT NULL,
+  printed_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_lot     ON items(lot_id);
@@ -68,11 +73,22 @@ declare global {
   var __bardaDb: DatabaseSync | undefined;
 }
 
+/** Ajoute les colonnes manquantes aux bases créées avant leur apparition. */
+function migrate(db: DatabaseSync) {
+  const columns = (db.prepare("PRAGMA table_info(print_queue)").all() as { name: string }[])
+    .map((c) => c.name);
+  if (!columns.includes("code")) db.exec("ALTER TABLE print_queue ADD COLUMN code TEXT NOT NULL DEFAULT ''");
+  if (!columns.includes("printed_at")) db.exec("ALTER TABLE print_queue ADD COLUMN printed_at TEXT");
+  // Avant le panier, tout ce qui était en file était destiné au Mac.
+  db.exec("UPDATE print_queue SET state = 'relais' WHERE state = 'en_attente'");
+}
+
 function open(): DatabaseSync {
   const file = resolve(process.env.BARDA_DB || "./data/barda.db");
   mkdirSync(dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db, row } from "@/lib/db";
+import { countLabels } from "@/lib/print";
 import { COOKIE_NAME } from "@/lib/auth";
 import { stats } from "@/lib/queries";
 
@@ -15,9 +15,8 @@ async function logout() {
 
 export default function Reglages() {
   const st = stats();
-  const pending = row<{ n: number }>(
-    db.prepare("SELECT COUNT(*) AS n FROM print_queue WHERE state = 'en_attente'").get(),
-  ).n;
+  const enFile = countLabels("file");
+  const auRelais = countLabels("relais");
 
   return (
     <>
@@ -36,9 +35,11 @@ export default function Reglages() {
       <div className="card">
         <div className="card-title">File d&apos;impression</div>
         <p className="small muted">
-          {pending} étiquette{pending > 1 ? "s" : ""} en attente. Le Mac les récupère quand{" "}
-          <span className="code">npm run spool</span> tourne, et les envoie à la Fichero D11s.
+          {enFile} dans la file, {auRelais} confiée{auRelais > 1 ? "s" : ""} au Mac. Rien ne sort de
+          l&apos;imprimante tant que tu ne l&apos;as pas demandé ; ce qui est confié au Mac part
+          quand <span className="code">npm run spool</span> tourne.
         </p>
+        <Link className="btn wide" href="/impression">Ouvrir la file</Link>
       </div>
 
       <div className="card">

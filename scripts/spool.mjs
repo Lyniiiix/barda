@@ -2,10 +2,12 @@
 /**
  * Relais d'impression pour le Mac.
  *
- * Relève la file d'attente de Barda et imprime chaque étiquette sur la Fichero
- * D11s via la CLI `fichero`. Sert de chemin de secours universel : depuis
- * Safari (Mac ou iPhone), depuis un autre poste, ou quand le Bluetooth direct
- * n'est pas disponible.
+ * Imprime sur la Fichero D11s, via la CLI `fichero`, les étiquettes qu'on lui a
+ * **explicitement confiées** depuis Barda (bouton « Confier au Mac »).
+ *
+ * Il ne touche jamais au panier : ce qui est dans la file de l'app attend qu'on
+ * décide, ici on ne prend que l'état `relais`. C'est ce qui évite qu'un relais
+ * resté ouvert imprime tout ce qui passe.
  *
  *   BARDA_URL=https://barda.example.com BARDA_PRINT_TOKEN=… npm run spool
  *

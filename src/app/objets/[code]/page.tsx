@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import LabelButton from "@/components/LabelButton";
 import { bumpQty } from "@/lib/actions";
 import { getItemByCode } from "@/lib/queries";
+import { lastPrinted } from "@/lib/print";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,8 @@ export default async function Objet({ params }: { params: Promise<{ code: string
         </div>
       </div>
 
-      <LabelButton code={item.code} name={item.name} sub={item.lot_name || item.category} />
+      <LabelButton code={item.code} name={item.name} sub={item.lot_name || item.category}
+                   lastPrinted={lastPrinted(item.code)} />
 
       <p className="small muted center">
         Créé le {new Date(item.created_at).toLocaleDateString("fr-FR")} · modifié le{" "}

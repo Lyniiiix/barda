@@ -4,6 +4,7 @@ import LabelButton from "@/components/LabelButton";
 import { deleteLot, updateLot } from "@/lib/actions";
 import { LOT_KINDS } from "@/lib/constants";
 import { getLotByCode, listItems } from "@/lib/queries";
+import { lastPrinted } from "@/lib/print";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,8 @@ export default async function LotDetail({ params }: { params: Promise<{ code: st
       ))}
       {items.length === 0 && <div className="card center muted small">Lot vide.</div>}
 
-      <LabelButton code={lot.code} name={lot.name} sub={[lot.kind, lot.place].filter(Boolean).join(" · ")} />
+      <LabelButton code={lot.code} name={lot.name} sub={[lot.kind, lot.place].filter(Boolean).join(" · ")}
+                   lastPrinted={lastPrinted(lot.code)} />
 
       <hr className="sep" />
 

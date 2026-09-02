@@ -45,11 +45,23 @@ page choisit toute seule :
 |---|---|---|
 | App iOS [`barda-ios`](../barda-ios) | pont natif → CoreBluetooth | l'app installée |
 | Chrome / Edge, sur Mac ou Android | Web Bluetooth | rien |
-| Safari, ou n'importe quoi d'autre | file d'impression → relais Mac | `npm run spool` qui tourne |
+| Safari, ou n'importe quoi d'autre | « Confier au Mac » → relais | `npm run spool` qui tourne |
 
-`hasNativePrinter()` (`src/lib/native.ts`) arbitre entre les deux premiers ; le bouton
-« File d'impression » reste toujours affiché en secours. **Bluefy** (navigateur Web Bluetooth de
-l'App Store) reste une quatrième voie sur iPhone, si l'app native n'est pas installée.
+### La file, et pourquoi elle existe
+
+Un bouton qui imprime au premier appui coûte cher : un double appui, une étiquette de trop, et
+on ne sait plus ce qui est déjà sorti. Le chemin normal est donc **le panier** :
+
+- « Ajouter à la file » sur la fiche d'un objet ou d'un lot — **rien ne sort** ;
+- la page `/impression` montre **le nombre d'étiquettes qui vont réellement sortir**, copies
+  comprises, et laisse ajuster ou retirer ;
+- au-delà de dix, l'impression demande une confirmation explicite ;
+- ajouter deux fois la même étiquette ne fait pas deux lignes : la file le signale ;
+- une coupure en cours de série n'acquitte que ce qui est sorti — le reste reste en file ;
+- chaque fiche affiche **« déjà imprimée le … »**, pour ne pas refaire une étiquette existante.
+
+`/api/print-queue` ne sert au relais Mac que l'état `relais` : **ce qui est dans le panier n'est
+jamais imprimé par surprise**, même si le relais tourne en permanence.
 
 Le relais imprime lui-même via la CLI `fichero` — un seul terminal à laisser ouvert :
 

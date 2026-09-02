@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { listItems, listLots, stats } from "@/lib/queries";
+import { countLabels } from "@/lib/print";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
   const st = stats();
+  const enFile = countLabels("file");
   const recents = listItems().slice(0, 6);
   const lots = listLots();
 
@@ -33,6 +35,15 @@ export default function Home() {
         <Link className="btn primary wide" href="/scan">📷 Scanner</Link>
         <Link className="btn wide" href="/objets/nouveau">＋ Objet</Link>
       </div>
+
+      {enFile > 0 && (
+        <Link className="card tap" href="/impression" style={{ borderColor: "var(--accent)" }}>
+          <div className="card-title">
+            🖨 {enFile} étiquette{enFile > 1 ? "s" : ""} en attente d&apos;impression
+          </div>
+          <div className="card-sub">Rien ne sort tant que tu ne l&apos;as pas demandé.</div>
+        </Link>
+      )}
 
       {(st.sansLot > 0 || st.aVoir > 0) && (
         <div className="chips" style={{ marginBottom: 14 }}>
