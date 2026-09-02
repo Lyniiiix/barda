@@ -38,7 +38,14 @@ CREATE TABLE IF NOT EXISTS items (
   qty         REAL    NOT NULL DEFAULT 1,
   unit        TEXT    NOT NULL DEFAULT '',
   status      TEXT    NOT NULL DEFAULT 'ok',
+  -- « à racheter » est une intention, pas un état : un objet peut être en bon
+  -- état et sur la liste de courses, ou usé sans qu'on veuille le remplacer.
+  restock     INTEGER NOT NULL DEFAULT 0,
+  -- Seuil d'alerte pour les consommables : en dessous, l'objet remonte tout seul.
+  min_qty     REAL    NOT NULL DEFAULT 0,
   barcode     TEXT    NOT NULL DEFAULT '',
+  -- Nom du fichier dans le dossier photos, à côté de la base. Vide = pas de photo.
+  photo       TEXT    NOT NULL DEFAULT '',
   lot_id      INTEGER REFERENCES lots(id) ON DELETE SET NULL,
   created_at  TEXT    NOT NULL,
   updated_at  TEXT    NOT NULL
@@ -79,6 +86,12 @@ function migrate(db: DatabaseSync) {
     .map((c) => c.name);
   if (!columns.includes("code")) db.exec("ALTER TABLE print_queue ADD COLUMN code TEXT NOT NULL DEFAULT ''");
   if (!columns.includes("printed_at")) db.exec("ALTER TABLE print_queue ADD COLUMN printed_at TEXT");
+
+  const itemCols = (db.prepare("PRAGMA table_info(items)").all() as { name: string }[])
+    .map((c) => c.name);
+  if (!itemCols.includes("restock")) db.exec("ALTER TABLE items ADD COLUMN restock INTEGER NOT NULL DEFAULT 0");
+  if (!itemCols.includes("min_qty")) db.exec("ALTER TABLE items ADD COLUMN min_qty REAL NOT NULL DEFAULT 0");
+  if (!itemCols.includes("photo")) db.exec("ALTER TABLE items ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
   // Avant le panier, tout ce qui était en file était destiné au Mac.
   db.exec("UPDATE print_queue SET state = 'relais' WHERE state = 'en_attente'");
 }
@@ -111,6 +124,11 @@ export const db = new Proxy({} as DatabaseSync, {
 
 export const now = () => new Date().toISOString();
 
+/** Les photos vivent à côté de la base, donc dans le même volume persistant. */
+export function photoDir(): string {
+  return resolve(dirname(process.env.BARDA_DB || "./data/barda.db"), "photos");
+}
+
 /** Les lignes de node:sqlite ont un prototype nul : React n'aime pas les sérialiser. */
 export function row<T>(r: unknown): T {
   return { ...(r as object) } as T;
@@ -130,5 +148,6 @@ export type Project = {
 export type Item = {
   id: number; code: string; name: string; description: string;
   category: string; qty: number; unit: string; status: string;
+  restock: number; min_qty: number; photo: string;
   barcode: string; lot_id: number | null; created_at: string; updated_at: string;
 };

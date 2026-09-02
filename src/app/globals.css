@@ -232,3 +232,23 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
 @media (max-width: 460px) {
   .job { flex-direction: column; }
 }
+
+/* ------------------------------------------------------- photos et icônes */
+
+.avatar {
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--line);
+}
+.avatar.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.avatar.big { border-radius: 12px; }
+
+.with-avatar { display: flex; gap: 12px; align-items: flex-start; }
+.with-avatar > div { min-width: 0; flex: 1; }

@@ -9,7 +9,7 @@ Trois objets, et c'est tout :
 
 | | Code | À quoi ça sert |
 |---|---|---|
-| **Objet** | `I…` | Une chose. Un fer à souder, un disque dur, un rouleau de gaine, une trousse de secours. Nom, description libre, quantité + unité, catégorie, état. |
+| **Objet** | `I…` | Une chose. Un fer à souder, un disque dur, un rouleau de gaine, une trousse de secours. Nom, description libre, quantité + unité, catégorie, état, **photo**. |
 | **Lot** | `L…` | *Où* c'est rangé : un sac, une caisse, un tiroir. Nommé « Lot 1 », « Lot 2 »… par défaut. Un objet est dans zéro ou un lot. |
 | **Projet** | `P…` | *À quoi* ça sert : « Voiture enfant », « Support CAN ». Un objet peut servir à plusieurs projets. |
 
@@ -18,6 +18,33 @@ La fiche d'un projet répond à la seule question qui compte au moment de charge
 
 Chaque objet et chaque lot porte un code court à 6 caractères (`IR7MCX`, `LGJWAQ`) — l'alphabet
 exclut `I`, `L`, `O` et `U`, illisibles sur une étiquette de 12 mm.
+
+## État, et liste de courses
+
+Deux choses différentes, volontairement séparées :
+
+- **l'état** décrit la chose — `ok`, `usé`, `à réparer`, `à remplacer`, `prêté`, `manquant` ;
+- **« à racheter »** est une intention, pas un état. Un tournevis neuf peut être sur la liste de
+  courses parce qu'on en veut un deuxième ; un foret usé peut ne pas y être parce qu'on s'en
+  contente.
+
+La page `/courses` rassemble tout ce qui est à reprendre. Un objet y arrive de quatre façons :
+coché à la main, **quantité tombée à zéro** (fait tout seul), **passé sous son seuil**, ou porté
+manquant. Chaque ligne dit *pourquoi*, et « Racheté » remet le stock et sort l'objet de la liste.
+
+Le **seuil** (`min_qty`) évite d'avoir à y penser : trois rouleaux d'étain avec un seuil à 1, et
+l'étain remonte tout seul le jour où il n'en reste qu'un. À 0, pas de seuil — c'est le défaut,
+pour ne pas imposer de compter ce qu'on ne veut pas compter.
+
+## Photos et icônes
+
+Chaque objet peut porter une photo, prise depuis le téléphone (`capture="environment"`).
+L'image est **réduite dans le navigateur** à 1024 px de côté avant l'envoi — inutile de faire
+transiter 4 Mo en 4G. Les fichiers vivent dans `photos/` à côté de la base, donc dans le même
+volume persistant.
+
+Sans photo, l'objet affiche **l'icône de sa catégorie** (`iconFor` dans `constants.ts`) : il n'y
+a jamais de vignette vide dans une liste.
 
 ## Étiquettes
 

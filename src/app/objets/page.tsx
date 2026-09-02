@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { categoriesUsed, listItems, listLots, listProjects } from "@/lib/queries";
 import { STATUSES } from "@/lib/constants";
+import ItemAvatar from "@/components/ItemAvatar";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
   const sp = await searchParams;
   const filter = {
     q: sp.q, lot: sp.lot, project: sp.project, category: sp.category,
-    status: sp.status, sansLot: sp.sansLot === "1",
+    status: sp.status, sansLot: sp.sansLot === "1", aRacheter: sp.aRacheter === "1",
   };
   const items = listItems(filter);
   const lots = listLots();
@@ -44,6 +45,7 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
       </form>
 
       <div className="chips scroll">
+        <Link className={`chip ${sp.aRacheter === "1" ? "on" : ""}`} href={qs({ aRacheter: "1" })}>🛒 à racheter</Link>
         <Link className={`chip ${filter.sansLot ? "on" : ""}`} href={qs({ sansLot: "1" })}>sans lot</Link>
         {lots.map((l) => (
           <Link key={l.code} className={`chip ${sp.lot === l.code ? "on" : ""}`} href={qs({ lot: l.code })}>📦 {l.name}</Link>
@@ -67,18 +69,26 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
 
       {items.map((i) => (
         <Link key={i.code} className="card tap" href={`/objets/${i.code}`}>
-          <div className="card-title">
-            {i.name}
-            {i.qty !== 1 && <span className="muted small">× {i.qty} {i.unit}</span>}
-            <span className="spacer" style={{ marginLeft: "auto" }} />
-            {i.status !== "ok" && <span className={`chip ${i.status === "manquant" ? "bad" : "warn"}`}>{i.status}</span>}
+          <div className="with-avatar">
+            <ItemAvatar code={i.code} photo={i.photo} category={i.category} />
+            <div>
+              <div className="card-title">
+                {i.name}
+                {i.qty !== 1 && <span className="muted small">× {i.qty} {i.unit}</span>}
+                <span className="spacer" style={{ marginLeft: "auto" }} />
+                {i.a_racheter ? <span className="chip warn">🛒</span> : null}
+                {i.status !== "ok" && (
+                  <span className={`chip ${i.status === "manquant" ? "bad" : "warn"}`}>{i.status}</span>
+                )}
+              </div>
+              <div className="card-sub">
+                {i.lot_name ? `📦 ${i.lot_name}` : "sans lot"}
+                {i.category && ` · ${i.category}`}
+                {i.projects && ` · 🎯 ${i.projects}`}
+              </div>
+              {i.description && <div className="card-desc">{i.description.slice(0, 120)}</div>}
+            </div>
           </div>
-          <div className="card-sub">
-            {i.lot_name ? `📦 ${i.lot_name}` : "sans lot"}
-            {i.category && ` · ${i.category}`}
-            {i.projects && ` · 🎯 ${i.projects}`}
-          </div>
-          {i.description && <div className="card-desc">{i.description.slice(0, 120)}</div>}
         </Link>
       ))}
     </>

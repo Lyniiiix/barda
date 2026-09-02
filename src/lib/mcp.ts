@@ -30,6 +30,9 @@ const brief = (i: q.ItemRow) => ({
   unite: i.unit,
   categorie: i.category || undefined,
   etat: i.status,
+  a_racheter: i.a_racheter ? q.restockReason(i) : undefined,
+  seuil: i.min_qty || undefined,
+  photo: i.photo ? true : undefined,
   lot: i.lot_name ? { code: i.lot_code, nom: i.lot_name } : null,
   projets: i.projects ? i.projects.split(" · ") : [],
 });
@@ -41,7 +44,9 @@ const ITEM_FIELDS = {
   unite: str("u, m, kg, boîte, rouleau…"),
   categorie: str("Outil, Consommable, Stockage, Câble / connectique…"),
   lot: str("Code du lot où c'est rangé (L…), ou vide pour aucun."),
-  etat: str("ok, à réparer, usé, prêté, manquant."),
+  etat: str("État physique : ok, usé, à réparer, à remplacer, prêté, manquant."),
+  a_racheter: { type: "boolean", description: "Mettre ou retirer de la liste de courses. Indépendant de l'état." },
+  seuil: num("Sous cette quantité, l'objet apparaît tout seul dans la liste de courses. 0 = pas de seuil."),
   code_barres: str("Code-barres du fabricant, si scanné."),
   projets: { type: "array", items: { type: "string" }, description: "Codes des projets (P…)." },
 };
@@ -53,6 +58,8 @@ const itemInput = (a: Record<string, unknown>): m.ItemInput => ({
   qty: a.quantite as number | undefined,
   unit: a.unite as string | undefined,
   status: a.etat as string | undefined,
+  restock: a.a_racheter as boolean | undefined,
+  minQty: a.seuil as number | undefined,
   barcode: a.code_barres as string | undefined,
   lot: a.lot === undefined ? undefined : ((a.lot as string) || null),
   projects: a.projets as string[] | undefined,
@@ -85,6 +92,9 @@ export const TOOLS: Tool[] = [
           description: p.description || undefined,
         })),
         a_surveiller: attention.map(brief),
+        a_racheter: q.listItems({ aRacheter: true }).map((i) => ({
+          code: i.code, nom: i.name, raison: q.restockReason(i), reste: `${i.qty} ${i.unit}`,
+        })),
         sans_lot: items.filter((i) => !i.lot_code).map((i) => i.name).slice(0, 40),
       };
     },
@@ -101,11 +111,12 @@ export const TOOLS: Tool[] = [
       categorie: str("Limiter à une catégorie."),
       etat: str("Limiter à un état : ok, à réparer, usé, prêté, manquant."),
       sans_lot: { type: "boolean", description: "Seulement les objets rangés nulle part." },
+      a_racheter: { type: "boolean", description: "Seulement ce qui est à racheter." },
     }),
     handler: (a) => {
       const items = q.listItems({
         q: a.texte, lot: a.lot, project: a.projet,
-        category: a.categorie, status: a.etat, sansLot: a.sans_lot,
+        category: a.categorie, status: a.etat, sansLot: a.sans_lot, aRacheter: a.a_racheter,
       });
       return { trouves: items.length, objets: items.map(brief) };
     },
@@ -228,6 +239,35 @@ export const TOOLS: Tool[] = [
       return qty === null
         ? { erreur: `Aucun objet avec le code ${a.code}.` }
         : { quantite: qty, message: `Nouvelle quantité : ${qty}.` };
+    },
+  },
+  {
+    name: "a_racheter_lister",
+    description:
+      "La liste de courses : tout ce qui est à racheter, avec la raison — marqué à la main, " +
+      "épuisé, sous son seuil, ou porté manquant. À consulter avant de proposer une commande.",
+    inputSchema: obj({}),
+    handler: () =>
+      q.listItems({ aRacheter: true }).map((i) => ({
+        code: i.code, nom: i.name, raison: q.restockReason(i),
+        reste: `${i.qty} ${i.unit}`, categorie: i.category || undefined,
+        lot: i.lot_name || undefined, description: i.description || undefined,
+      })),
+  },
+  {
+    name: "stock_reappro",
+    description:
+      "Réapprovisionnement : fixe la nouvelle quantité et retire l'objet de la liste de courses. " +
+      "À utiliser quand la commande est arrivée, plutôt que `stock_ajuster`.",
+    inputSchema: obj({
+      code: str("Code de l'objet (I…)."),
+      quantite: num("Quantité désormais en stock."),
+    }, ["code", "quantite"]),
+    handler: (a) => {
+      const qty = m.restock(String(a.code).toUpperCase(), Number(a.quantite));
+      return qty === null
+        ? { erreur: `Aucun objet avec le code ${a.code}.` }
+        : { quantite: qty, message: `Réappro à ${qty}, retiré de la liste de courses.` };
     },
   },
   {

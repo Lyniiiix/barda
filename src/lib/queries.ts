@@ -1,10 +1,23 @@
 import "server-only";
 import { db, rows, row, type Item, type Lot, type Project } from "./db";
 
-export type ItemRow = Item & { lot_name: string | null; lot_code: string | null; projects: string };
+export type ItemRow = Item & {
+  lot_name: string | null; lot_code: string | null; projects: string; a_racheter: number;
+};
+
+/** Pourquoi cet objet est sur la liste de courses — pour l'afficher sans le recalculer. */
+export function restockReason(i: ItemRow): string | null {
+  if (!i.a_racheter) return null;
+  if (i.status === "manquant") return "porté manquant";
+  if (i.qty <= 0) return "épuisé";
+  if (i.min_qty > 0 && i.qty <= i.min_qty) return `sous le seuil de ${i.min_qty} ${i.unit}`;
+  return "marqué à racheter";
+}
 
 const ITEM_SELECT = `
   SELECT i.*, l.name AS lot_name, l.code AS lot_code,
+         CASE WHEN (i.restock = 1 OR i.qty <= 0 OR (i.min_qty > 0 AND i.qty <= i.min_qty)
+                    OR i.status = 'manquant') THEN 1 ELSE 0 END AS a_racheter,
          COALESCE((SELECT group_concat(p.name, ' · ')
                    FROM item_projects ip JOIN projects p ON p.id = ip.project_id
                    WHERE ip.item_id = i.id ORDER BY p.name), '') AS projects
@@ -12,8 +25,17 @@ const ITEM_SELECT = `
 `;
 
 export type ItemFilter = {
-  q?: string; lot?: string; project?: string; category?: string; status?: string; sansLot?: boolean;
+  q?: string; lot?: string; project?: string; category?: string; status?: string;
+  sansLot?: boolean; aRacheter?: boolean;
 };
+
+/**
+ * Un objet est à racheter s'il est explicitement marqué, s'il n'en reste plus,
+ * si son seuil est franchi, ou s'il est porté manquant. Le drapeau manuel suffit,
+ * mais les trois autres cas évitent d'avoir à y penser.
+ */
+export const RESTOCK_SQL =
+  "(i.restock = 1 OR i.qty <= 0 OR (i.min_qty > 0 AND i.qty <= i.min_qty) OR i.status = 'manquant')";
 
 export function listItems(f: ItemFilter = {}): ItemRow[] {
   const where: string[] = [];
@@ -26,6 +48,7 @@ export function listItems(f: ItemFilter = {}): ItemRow[] {
   }
   if (f.lot) { where.push("l.code = ?"); args.push(f.lot); }
   if (f.sansLot) where.push("i.lot_id IS NULL");
+  if (f.aRacheter) where.push(RESTOCK_SQL);
   if (f.category) { where.push("i.category = ?"); args.push(f.category); }
   if (f.status) { where.push("i.status = ?"); args.push(f.status); }
   if (f.project) {
@@ -99,6 +122,7 @@ export function stats() {
     projects: one("SELECT COUNT(*) AS n FROM projects"),
     sansLot: one("SELECT COUNT(*) AS n FROM items WHERE lot_id IS NULL"),
     aVoir: one("SELECT COUNT(*) AS n FROM items WHERE status <> 'ok'"),
+    aRacheter: one(`SELECT COUNT(*) AS n FROM items i WHERE ${RESTOCK_SQL}`),
   };
 }
 

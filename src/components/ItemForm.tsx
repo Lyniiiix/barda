@@ -70,6 +70,24 @@ export default function ItemForm({
         </div>
       </div>
 
+      <div className="grid2">
+        <div className="field">
+          <label>Seuil d&apos;alerte (0 = aucun)</label>
+          <input name="minQty" type="text" inputMode="decimal"
+                 defaultValue={item ? String(item.min_qty) : "0"} />
+        </div>
+        <div className="field">
+          <label>Liste de courses</label>
+          <div className="checkline" style={{ borderBottom: 0, paddingTop: 12 }}>
+            <input type="checkbox" name="restock" value="1" id="restock"
+                   defaultChecked={!!item?.restock} />
+            <label htmlFor="restock" style={{ margin: 0, color: "var(--fg)", fontSize: 15 }}>
+              à racheter
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div className="field">
         <label>Code-barres du fabricant (optionnel)</label>
         <input name="barcode" defaultValue={item?.barcode ?? defaultBarcode} placeholder="scanné sur l'emballage" />

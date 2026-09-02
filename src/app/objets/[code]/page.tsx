@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LabelButton from "@/components/LabelButton";
-import { bumpQty } from "@/lib/actions";
+import { bumpQty, toggleRestock } from "@/lib/actions";
+import ItemAvatar from "@/components/ItemAvatar";
+import PhotoButton from "@/components/PhotoButton";
+import { restockReason } from "@/lib/queries";
 import { getItemByCode } from "@/lib/queries";
 import { lastPrinted } from "@/lib/print";
 
@@ -17,6 +20,7 @@ export default async function Objet({ params }: { params: Promise<{ code: string
       <Link className="back" href="/objets">‹ Objets</Link>
 
       <div className="topbar">
+        <ItemAvatar code={item.code} photo={item.photo} category={item.category} size={56} />
         <div>
           <h1>{item.name}</h1>
           <div className="sub code">{item.code}</div>
@@ -46,7 +50,20 @@ export default async function Objet({ params }: { params: Promise<{ code: string
 
         {item.description && <div className="card-desc" style={{ marginTop: 10 }}>{item.description}</div>}
 
+        <div className="row wrap" style={{ marginTop: 10 }}>
+          <PhotoButton code={item.code} hasPhoto={!!item.photo} />
+          <form action={toggleRestock}>
+            <input type="hidden" name="code" value={item.code} />
+            <input type="hidden" name="on" value={item.restock ? "0" : "1"} />
+            <button className={`btn sm ${item.restock ? "primary" : ""}`} type="submit">
+              {item.restock ? "✓ sur la liste de courses" : "🛒 à racheter"}
+            </button>
+          </form>
+        </div>
+
         <div className="chips">
+          {item.a_racheter ? <span className="chip warn">🛒 {restockReason(item)}</span> : null}
+          {item.min_qty > 0 && <span className="chip">seuil : {item.min_qty} {item.unit}</span>}
           {item.lot_code
             ? <Link className="chip" href={`/lots/${item.lot_code}`}>📦 {item.lot_name}</Link>
             : <span className="chip warn">sans lot</span>}

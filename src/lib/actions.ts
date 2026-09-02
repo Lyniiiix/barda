@@ -19,6 +19,8 @@ const itemFields = (fd: FormData): m.ItemInput => ({
   qty: n(fd.get("qty"), 1),
   unit: s(fd.get("unit")) || "u",
   status: s(fd.get("status")) || "ok",
+  restock: s(fd.get("restock")) === "1",
+  minQty: n(fd.get("minQty"), 0),
   barcode: s(fd.get("barcode")),
   lot: s(fd.get("lot")) || null,
   projects: fd.getAll("projects").map(String),
@@ -59,6 +61,24 @@ export async function bumpQty(fd: FormData) {
   m.bumpQty(code, n(fd.get("delta"), 0));
   revalidatePath(`/objets/${code}`);
   revalidatePath("/objets");
+}
+
+export async function toggleRestock(fd: FormData) {
+  const code = s(fd.get("code"));
+  m.setRestock(code, s(fd.get("on")) === "1");
+  revalidatePath(`/objets/${code}`);
+  revalidatePath("/courses");
+  revalidatePath("/objets");
+  revalidatePath("/");
+}
+
+/** Réapprovisionné : on saisit le nouveau stock et l'objet sort de la liste. */
+export async function markRestocked(fd: FormData) {
+  const code = s(fd.get("code"));
+  m.restock(code, n(fd.get("qty"), 1));
+  revalidatePath("/courses");
+  revalidatePath("/objets");
+  revalidatePath("/");
 }
 
 /* -------------------------------------------------------------------- lots */

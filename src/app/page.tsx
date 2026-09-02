@@ -45,10 +45,11 @@ export default function Home() {
         </Link>
       )}
 
-      {(st.sansLot > 0 || st.aVoir > 0) && (
+      {(st.sansLot > 0 || st.aVoir > 0 || st.aRacheter > 0) && (
         <div className="chips" style={{ marginBottom: 14 }}>
           {st.sansLot > 0 && <Link className="chip warn" href="/objets?sansLot=1">{st.sansLot} sans lot</Link>}
           {st.aVoir > 0 && <Link className="chip bad" href="/objets?status=manquant">{st.aVoir} à surveiller</Link>}
+          {st.aRacheter > 0 && <Link className="chip warn" href="/courses">🛒 {st.aRacheter} à racheter</Link>}
         </div>
       )}
 

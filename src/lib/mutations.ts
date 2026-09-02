@@ -14,6 +14,8 @@ export type ItemInput = {
   qty?: number;
   unit?: string;
   status?: string;
+  restock?: boolean;
+  minQty?: number;
   barcode?: string;
   lot?: string | null;
   projects?: string[];
@@ -42,8 +44,8 @@ export function createItem(input: ItemInput): string {
   const code = newCode("item");
   const t = now();
   db.prepare(`
-    INSERT INTO items (code, name, description, category, qty, unit, status, barcode, lot_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO items (code, name, description, category, qty, unit, status, restock, min_qty, barcode, lot_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     code,
     input.name?.trim() || "Sans nom",
@@ -52,6 +54,8 @@ export function createItem(input: ItemInput): string {
     input.qty ?? 1,
     input.unit || "u",
     input.status || "ok",
+    input.restock ? 1 : 0,
+    input.minQty ?? 0,
     input.barcode ?? "",
     lotId(input.lot),
     t, t,
@@ -75,6 +79,8 @@ export function updateItem(code: string, patch: ItemInput): boolean {
   if (patch.qty !== undefined) put("qty", Math.max(0, patch.qty));
   if (patch.unit !== undefined) put("unit", patch.unit || "u");
   if (patch.status !== undefined) put("status", patch.status || "ok");
+  if (patch.restock !== undefined) put("restock", patch.restock ? 1 : 0);
+  if (patch.minQty !== undefined) put("min_qty", Math.max(0, patch.minQty));
   if (patch.barcode !== undefined) put("barcode", patch.barcode);
   if (patch.lot !== undefined) put("lot_id", lotId(patch.lot));
 
@@ -90,7 +96,33 @@ export function bumpQty(code: string, delta: number): number | null {
   if (itemId(code) === null) return null;
   db.prepare("UPDATE items SET qty = MAX(0, qty + ?), updated_at = ? WHERE code = ?")
     .run(delta, now(), code);
-  return row<{ qty: number }>(db.prepare("SELECT qty FROM items WHERE code = ?").get(code)).qty;
+  const qty = row<{ qty: number }>(db.prepare("SELECT qty FROM items WHERE code = ?").get(code)).qty;
+  // Tomber à zéro, c'est « y'en a plus » : inutile de penser à le cocher.
+  if (qty <= 0) db.prepare("UPDATE items SET restock = 1 WHERE code = ?").run(code);
+  return qty;
+}
+
+/** Marque ou démarque un objet sur la liste de courses. */
+export function setRestock(code: string, on: boolean): boolean {
+  const id = itemId(code);
+  if (id === null) return false;
+  db.prepare("UPDATE items SET restock = ?, updated_at = ? WHERE code = ?").run(on ? 1 : 0, now(), code);
+  return true;
+}
+
+export function setPhoto(code: string, file: string): boolean {
+  if (itemId(code) === null) return false;
+  db.prepare("UPDATE items SET photo = ?, updated_at = ? WHERE code = ?").run(file, now(), code);
+  return true;
+}
+
+/** Réapprovisionnement : on remet du stock et on sort de la liste de courses. */
+export function restock(code: string, qty: number): number | null {
+  const id = itemId(code);
+  if (id === null) return null;
+  db.prepare("UPDATE items SET qty = ?, restock = 0, status = CASE WHEN status = 'manquant' THEN 'ok' ELSE status END, updated_at = ? WHERE code = ?")
+    .run(Math.max(0, qty), now(), code);
+  return Math.max(0, qty);
 }
 
 export function deleteItem(code: string): boolean {
