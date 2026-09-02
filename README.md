@@ -174,7 +174,12 @@ npm run dev     # http://localhost:3210
 | `BARDA_MCP_TOKEN` | jeton du serveur MCP (en-tête `Authorization: Bearer …`) |
 | `UNSPLASH_ACCESS_KEY` | optionnel — suggestions de photos Unsplash |
 
-Base **SQLite** par `node:sqlite` (intégré à Node ≥ 22) — aucune dépendance native, aucun ORM,
+⚠️ **Node ≥ 24 obligatoire** (`engines` dans `package.json`) : `node:sqlite` n'est un module
+intégré utilisable qu'à partir de là. Un constructeur qui choisit Node 22 — nixpacks le fait par
+défaut — échoue sur `ERR_UNKNOWN_BUILTIN_MODULE`. Le `Dockerfile` épingle `node:26-alpine` ;
+**c'est lui qu'il faut utiliser**, pas la détection automatique.
+
+Base **SQLite** par `node:sqlite` — aucune dépendance native, aucun ORM,
 le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage.
 
 ## Déploiement
