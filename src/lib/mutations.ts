@@ -110,9 +110,10 @@ export function setRestock(code: string, on: boolean): boolean {
   return true;
 }
 
-export function setPhoto(code: string, file: string): boolean {
+export function setPhoto(code: string, file: string, credit = ""): boolean {
   if (itemId(code) === null) return false;
-  db.prepare("UPDATE items SET photo = ?, updated_at = ? WHERE code = ?").run(file, now(), code);
+  db.prepare("UPDATE items SET photo = ?, photo_credit = ?, updated_at = ? WHERE code = ?")
+    .run(file, credit, now(), code);
   return true;
 }
 

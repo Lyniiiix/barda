@@ -38,15 +38,35 @@ pour ne pas imposer de compter ce qu'on ne veut pas compter.
 
 ## Photos et icônes
 
-Chaque objet peut porter une photo, prise depuis le téléphone (`capture="environment"`).
-L'image est **réduite dans le navigateur** à 1024 px de côté avant l'envoi — inutile de faire
-transiter 4 Mo en 4G. Les fichiers vivent dans `photos/` à côté de la base, donc dans le même
-volume persistant.
-
 Sans photo, l'objet affiche **l'icône de sa catégorie** (`iconFor` dans `constants.ts`) : il n'y
-a jamais de vignette vide dans une liste.
+a jamais de vignette vide dans une liste. Quatre façons d'en mettre une, dans cet ordre d'utilité :
 
-## Étiquettes
+| | |
+|---|---|
+| **📷 Photo** | l'appareil du téléphone. Réduite à 1024 px **dans le navigateur** avant l'envoi — inutile de faire transiter 4 Mo en 4G. |
+| **📋 Coller** | le vrai chemin pour un produit précis : copier l'image sur la page du vendeur, coller ici. Exact, instantané, rien à maintenir. |
+| **🔗 Adresse** | une URL d'image, récupérée côté serveur (le navigateur ne peut pas, à cause de CORS). |
+| **🔍 Suggérer** | Unsplash + Wikipédia, **proposés puis validés à l'œil**. |
+
+### Pourquoi pas de récupération automatique
+
+Mesuré le 02/09 avant d'écrire la moindre ligne :
+
+- **Openverse** : injoignable (HTTP 000).
+- **Wikimedia Commons** : « rivet nut tool » renvoie des catalogues de graines de 1918.
+- **Wikipédia** : juste sur le générique (fer à souder, perceuse, multimètre, disque dur), mais
+  « tresse à dessouder » renvoie **Seth, dieu égyptien**, et 429 au bout de dix requêtes.
+- **Amazon** : scraper leur page viole leurs conditions, et ils bloquent les IP de datacenter —
+  le VPS prendrait un CAPTCHA. Le sélecteur casserait en silence, et on se retrouverait sans
+  photos le jour où on en a besoin.
+
+Une photo fausse est pire qu'une icône. D'où le choix : **proposer, jamais appliquer tout seul**.
+
+**Unsplash** demande une clé gratuite (unsplash.com/developers) dans `UNSPLASH_ACCESS_KEY`. Sans
+elle, seul Wikipédia répond. Le crédit de l'auteur est enregistré avec la photo et affiché sous
+l'objet, et l'usage est signalé à Unsplash comme leurs conditions le demandent.
+
+## Étiquettes## Étiquettes
 
 Le QR encode `https://<hôte>/s/<code>`, donc **l'appareil photo natif de l'iPhone ouvre la fiche**
 sans passer par l'app. Le scanner intégré (`/scan`) sert à autre chose :
@@ -152,6 +172,7 @@ npm run dev     # http://localhost:3210
 | `BARDA_DB` | chemin du fichier SQLite |
 | `BARDA_PRINT_TOKEN` | jeton du relais d'impression (en-tête `x-barda-token`) |
 | `BARDA_MCP_TOKEN` | jeton du serveur MCP (en-tête `Authorization: Bearer …`) |
+| `UNSPLASH_ACCESS_KEY` | optionnel — suggestions de photos Unsplash |
 
 Base **SQLite** par `node:sqlite` (intégré à Node ≥ 22) — aucune dépendance native, aucun ORM,
 le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage.

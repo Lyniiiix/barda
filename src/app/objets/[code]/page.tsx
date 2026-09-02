@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import LabelButton from "@/components/LabelButton";
 import { bumpQty, toggleRestock } from "@/lib/actions";
 import ItemAvatar from "@/components/ItemAvatar";
-import PhotoButton from "@/components/PhotoButton";
+import PhotoPicker from "@/components/PhotoPicker";
 import { restockReason } from "@/lib/queries";
 import { getItemByCode } from "@/lib/queries";
 import { lastPrinted } from "@/lib/print";
@@ -50,8 +50,14 @@ export default async function Objet({ params }: { params: Promise<{ code: string
 
         {item.description && <div className="card-desc" style={{ marginTop: 10 }}>{item.description}</div>}
 
+        <div style={{ marginTop: 10 }}>
+          <PhotoPicker code={item.code} name={item.name} hasPhoto={!!item.photo} />
+          {item.photo_credit && (
+            <p className="small muted" style={{ marginTop: 6 }}>{item.photo_credit}</p>
+          )}
+        </div>
+
         <div className="row wrap" style={{ marginTop: 10 }}>
-          <PhotoButton code={item.code} hasPhoto={!!item.photo} />
           <form action={toggleRestock}>
             <input type="hidden" name="code" value={item.code} />
             <input type="hidden" name="on" value={item.restock ? "0" : "1"} />

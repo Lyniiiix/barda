@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS items (
   barcode     TEXT    NOT NULL DEFAULT '',
   -- Nom du fichier dans le dossier photos, à côté de la base. Vide = pas de photo.
   photo       TEXT    NOT NULL DEFAULT '',
+  -- Crédit de l'auteur : Unsplash l'exige, et ça dit d'où vient l'image.
+  photo_credit TEXT   NOT NULL DEFAULT '',
   lot_id      INTEGER REFERENCES lots(id) ON DELETE SET NULL,
   created_at  TEXT    NOT NULL,
   updated_at  TEXT    NOT NULL
@@ -92,6 +94,7 @@ function migrate(db: DatabaseSync) {
   if (!itemCols.includes("restock")) db.exec("ALTER TABLE items ADD COLUMN restock INTEGER NOT NULL DEFAULT 0");
   if (!itemCols.includes("min_qty")) db.exec("ALTER TABLE items ADD COLUMN min_qty REAL NOT NULL DEFAULT 0");
   if (!itemCols.includes("photo")) db.exec("ALTER TABLE items ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
+  if (!itemCols.includes("photo_credit")) db.exec("ALTER TABLE items ADD COLUMN photo_credit TEXT NOT NULL DEFAULT ''");
   // Avant le panier, tout ce qui était en file était destiné au Mac.
   db.exec("UPDATE print_queue SET state = 'relais' WHERE state = 'en_attente'");
 }
@@ -148,6 +151,6 @@ export type Project = {
 export type Item = {
   id: number; code: string; name: string; description: string;
   category: string; qty: number; unit: string; status: string;
-  restock: number; min_qty: number; photo: string;
+  restock: number; min_qty: number; photo: string; photo_credit: string;
   barcode: string; lot_id: number | null; created_at: string; updated_at: string;
 };
