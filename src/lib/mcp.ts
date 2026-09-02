@@ -1,6 +1,7 @@
 import "server-only";
 import * as q from "./queries";
 import * as m from "./mutations";
+import * as docs from "./docs";
 
 /**
  * Outils exposés à Claude. Volontairement sans suppression : un modèle peut se
@@ -32,6 +33,10 @@ const brief = (i: q.ItemRow) => ({
   etat: i.status,
   a_racheter: i.a_racheter ? q.restockReason(i) : undefined,
   seuil: i.min_qty || undefined,
+  achete_le: i.bought_at || undefined,
+  prix: i.price || undefined,
+  renouvellement: i.renew_at || undefined,
+  documents: docs.countDocs(i.code) || undefined,
   photo: i.photo ? true : undefined,
   lot: i.lot_name ? { code: i.lot_code, nom: i.lot_name } : null,
   projets: i.projects ? i.projects.split(" · ") : [],
@@ -47,6 +52,9 @@ const ITEM_FIELDS = {
   etat: str("État physique : ok, usé, à réparer, à remplacer, prêté, manquant."),
   a_racheter: { type: "boolean", description: "Mettre ou retirer de la liste de courses. Indépendant de l'état." },
   seuil: num("Sous cette quantité, l'objet apparaît tout seul dans la liste de courses. 0 = pas de seuil."),
+  date_achat: str("Date d'achat, au format AAAA-MM-JJ."),
+  prix: num("Prix payé, en euros."),
+  renouvellement: str("Date de renouvellement prévu (AAAA-MM-JJ) : passée, l'objet rejoint la liste de courses."),
   code_barres: str("Code-barres du fabricant, si scanné."),
   projets: { type: "array", items: { type: "string" }, description: "Codes des projets (P…)." },
 };
@@ -60,6 +68,9 @@ const itemInput = (a: Record<string, unknown>): m.ItemInput => ({
   status: a.etat as string | undefined,
   restock: a.a_racheter as boolean | undefined,
   minQty: a.seuil as number | undefined,
+  boughtAt: a.date_achat as string | undefined,
+  price: a.prix as number | undefined,
+  renewAt: a.renouvellement as string | undefined,
   barcode: a.code_barres as string | undefined,
   lot: a.lot === undefined ? undefined : ((a.lot as string) || null),
   projects: a.projets as string[] | undefined,
@@ -128,7 +139,12 @@ export const TOOLS: Tool[] = [
     handler: (a) => {
       const item = q.getItemByCode(String(a.code).toUpperCase());
       if (!item) return { erreur: `Aucun objet avec le code ${a.code}.` };
-      return brief(item);
+      return {
+        ...brief(item),
+        documents: docs.listDocs(item.code).map((d) => ({
+          nature: d.kind, titre: d.label, adresse: d.url || undefined,
+        })),
+      };
     },
   },
   {
@@ -268,6 +284,25 @@ export const TOOLS: Tool[] = [
       return qty === null
         ? { erreur: `Aucun objet avec le code ${a.code}.` }
         : { quantite: qty, message: `Réappro à ${qty}, retiré de la liste de courses.` };
+    },
+  },
+  {
+    name: "objet_document_lier",
+    description:
+      "Attache un lien (notice, fiche technique, page produit) à un objet. " +
+      "Attention : un lien est inutile sans réseau — pour du matériel qui voyage, " +
+      "conseiller de déposer plutôt le PDF depuis l'application.",
+    inputSchema: obj({
+      code: str("Code de l'objet, du lot ou du projet."),
+      titre: str("Intitulé lisible, ex. « Notice constructeur »."),
+      adresse: str("URL http(s)."),
+    }, ["code", "adresse"]),
+    handler: (a) => {
+      const code = String(a.code).toUpperCase();
+      if (!q.getItemByCode(code)) return { erreur: `Aucun objet avec le code ${a.code}.` };
+      if (!/^https?:\/\//i.test(String(a.adresse))) return { erreur: "adresse http(s) attendue" };
+      const id = docs.addLink(code, String(a.titre ?? "Lien"), String(a.adresse));
+      return { id, message: "Lien attaché." };
     },
   },
   {

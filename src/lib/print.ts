@@ -28,10 +28,37 @@ export function sentToRelay(): Omit<Job, "png">[] {
   return rows(db.prepare(`SELECT ${LIGHT} FROM print_queue WHERE state = 'relais' ORDER BY id`).all());
 }
 
-export function history(limit = 20): Omit<Job, "png">[] {
-  return rows(db.prepare(
-    `SELECT ${LIGHT} FROM print_queue WHERE state = 'imprimé' ORDER BY printed_at DESC LIMIT ?`,
-  ).all(limit));
+/**
+ * Journal d'impression. Séparé de la file : la file dit ce qu'il reste à faire,
+ * le journal dit ce qui s'est passé — y compris les échecs et les annulations,
+ * que la file efface par nature.
+ */
+export type LogEntry = {
+  id: number; code: string; label: string; copies: number;
+  outcome: "imprimé" | "échec" | "annulé"; detail: string; at: string;
+};
+
+export function logPrint(
+  outcome: LogEntry["outcome"], label: string, copies: number, code = "", detail = "",
+) {
+  db.prepare(
+    "INSERT INTO print_log (code, label, copies, outcome, detail, at) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(code, label, Math.max(1, copies), outcome, detail.slice(0, 300), now());
+}
+
+export function history(limit = 40, outcome?: LogEntry["outcome"]): LogEntry[] {
+  const where = outcome ? "WHERE outcome = ?" : "";
+  const args = outcome ? [outcome, limit] : [limit];
+  return rows<LogEntry>(
+    db.prepare(`SELECT * FROM print_log ${where} ORDER BY id DESC LIMIT ?`).all(...args),
+  );
+}
+
+export function historyCounts() {
+  const n = (o: string) => Number(row<{ n: number }>(
+    db.prepare("SELECT COUNT(*) AS n FROM print_log WHERE outcome = ?").get(o),
+  ).n);
+  return { imprimé: n("imprimé"), échec: n("échec"), annulé: n("annulé") };
 }
 
 export function pngOf(id: number): string | null {
@@ -91,10 +118,15 @@ export function setCopies(id: number, copies: number) {
 }
 
 export function remove(id: number) {
-  db.prepare("DELETE FROM print_queue WHERE id = ? AND state <> 'imprimé'").run(id);
+  const r = db.prepare("SELECT code, label, copies FROM print_queue WHERE id = ?").get(id);
+  if (!r) return;
+  const j = row<{ code: string; label: string; copies: number }>(r);
+  logPrint("annulé", j.label, j.copies, j.code);
+  db.prepare("DELETE FROM print_queue WHERE id = ?").run(id);
 }
 
 export function clearBasket() {
+  for (const j of basket()) logPrint("annulé", j.label, j.copies, j.code);
   db.prepare("DELETE FROM print_queue WHERE state = 'file'").run();
 }
 
@@ -103,10 +135,25 @@ export function moveJob(id: number, state: "file" | "relais") {
   db.prepare("UPDATE print_queue SET state = ? WHERE id = ? AND state <> 'imprimé'").run(state, id);
 }
 
+/** Une étiquette sortie quitte la file et entre au journal. */
 export function markPrinted(ids: number[]) {
-  const stmt = db.prepare("UPDATE print_queue SET state = 'imprimé', printed_at = ? WHERE id = ?");
-  const t = now();
-  for (const id of ids) stmt.run(t, id);
+  const read = db.prepare("SELECT code, label, copies FROM print_queue WHERE id = ?");
+  const drop = db.prepare("DELETE FROM print_queue WHERE id = ?");
+  for (const id of ids) {
+    const r = read.get(id);
+    if (!r) continue;
+    const j = row<{ code: string; label: string; copies: number }>(r);
+    logPrint("imprimé", j.label, j.copies, j.code);
+    drop.run(id);
+  }
+}
+
+/** Une tentative ratée : l'étiquette RESTE en file pour être reprise. */
+export function markFailed(id: number, reason: string) {
+  const r = db.prepare("SELECT code, label, copies FROM print_queue WHERE id = ?").get(id);
+  if (!r) return;
+  const j = row<{ code: string; label: string; copies: number }>(r);
+  logPrint("échec", j.label, j.copies, j.code, reason);
 }
 
 /** Confie le panier au Mac : c'est là, et seulement là, que le relais prend la main. */

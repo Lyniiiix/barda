@@ -88,6 +88,23 @@ export default function ItemForm({
         </div>
       </div>
 
+      <div className="grid2">
+        <div className="field">
+          <label>Date d&apos;achat</label>
+          <input name="boughtAt" type="date" defaultValue={item?.bought_at ?? ""} />
+        </div>
+        <div className="field">
+          <label>Prix payé (€)</label>
+          <input name="price" type="text" inputMode="decimal"
+                 defaultValue={item?.price ? String(item.price) : ""} placeholder="0" />
+        </div>
+      </div>
+
+      <div className="field">
+        <label>Renouvellement prévu (passe tout seul sur la liste de courses)</label>
+        <input name="renewAt" type="date" defaultValue={item?.renew_at ?? ""} />
+      </div>
+
       <div className="field">
         <label>Code-barres du fabricant (optionnel)</label>
         <input name="barcode" defaultValue={item?.barcode ?? defaultBarcode} placeholder="scanné sur l'emballage" />

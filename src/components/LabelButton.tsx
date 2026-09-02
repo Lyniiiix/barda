@@ -13,14 +13,14 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
   const [busy, setBusy] = useState(false);
   const [copies, setCopies] = useState(1);
   const [flip, setFlip] = useState(false);
-  const [urlMode, setUrlMode] = useState(true);
+  const [urlMode, setUrlMode] = useState(false);
   const [kind, setKind] = useState<"native" | "bluetooth" | "aucun">("aucun");
   const [basket, setBasket] = useState<number | null>(null);
 
   useEffect(() => {
     setKind(printerKind());
     setFlip(localStorage.getItem("barda.flip") === "1");
-    setUrlMode(localStorage.getItem("barda.qrCode") !== "1");
+    setUrlMode(localStorage.getItem("barda.qrLien") === "1");
   }, []);
 
   const redraw = useCallback(async () => {
@@ -86,8 +86,8 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
         <button className="btn sm" onClick={() => toggle("barda.flip", !flip, setFlip)}>
           {flip ? "Sens B" : "Sens A"}
         </button>
-        <button className="btn sm" onClick={() => toggle("barda.qrCode", urlMode, () => setUrlMode(!urlMode))}>
-          {urlMode ? "QR lien" : "QR code seul"}
+        <button className="btn sm" onClick={() => toggle("barda.qrLien", !urlMode, setUrlMode)}>
+          {urlMode ? "QR lien (plus fragile)" : "QR robuste"}
         </button>
       </div>
 

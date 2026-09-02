@@ -62,14 +62,23 @@ export async function drawLandscape(
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, W, H);
 
-  const payload = qrUrlMode ? `${location.origin}/s/${code}` : code;
-  const qr = QRCode.create(payload, { errorCorrectionLevel: qrUrlMode ? "L" : "M" });
+  // Mesuré : le code nu tient en 21×21 modules là où l'adresse en demande 25.
+  // Sur 90 px de haut, cela fait 4 px par module au lieu de 3 (+32 %), ET permet
+  // la correction Q (25 % de récupération) au lieu de L (7 %). Un QR plié ou
+  // sali passe encore. L'adresse reste possible : elle seule ouvre la fiche
+  // depuis l'appareil photo d'iOS, mais elle coûte cette robustesse.
+  const payload = qrUrlMode ? `${location.host}/s/${code}` : code;
+  const qr = QRCode.create(payload, { errorCorrectionLevel: qrUrlMode ? "L" : "Q" });
   const size = qr.modules.size;
   const data = qr.modules.data;
-  const box = 88;
+
+  // Le QR prend toute la hauteur utile : sur une étiquette de 12 mm, chaque
+  // pixel de module gagné compte quand le support est plié ou sali.
+  const MARGIN = 6;               // marge gauche : sans elle on imprime dans le bord
+  const box = H - 6;              // 90 px sur 96
   const scale = Math.max(1, Math.floor(box / size));
   const qrPx = size * scale;
-  const ox = 4 + Math.floor((box - qrPx) / 2);
+  const ox = MARGIN + Math.floor((box - qrPx) / 2);
   const oy = Math.floor((H - qrPx) / 2);
 
   ctx.fillStyle = "#000";
@@ -79,26 +88,44 @@ export async function drawLandscape(
     }
   }
 
-  const tx = 4 + box + 6;
-  const tw = W - tx - 4;
-  const nameSize = fitFont(ctx, name, tw, 21);
-  ctx.font = `700 ${nameSize}px -apple-system, Helvetica, Arial, sans-serif`;
-  const lines = wrap(ctx, name, tw, nameSize > 15 ? 2 : 3);
+  const tx = MARGIN + box + 7;
+  const tw = W - tx - 5;
 
-  const lineH = nameSize + 3;
-  const subH = sub ? 15 : 0;
-  let y = Math.max(12, Math.floor((H - (lines.length * lineH + subH + 14)) / 2) + nameSize);
+  // Ordre de priorité tenu à la lettre : le QR a déjà pris sa place, le code
+  // réserve la sienne, et le libellé se contente de ce qui reste — quitte à
+  // rétrécir ou à être coupé. C'est le seul des trois qu'on peut sacrifier.
+  const codeSize = 17;
+  const subSize = sub ? 12 : 0;
+  const reserve = codeSize + 3 + (subSize ? subSize + 2 : 0);
+  const dispo = H - reserve - 6;
+
+  let nameSize = fitFont(ctx, name, tw, 22);
+  let lines = wrap(ctx, name, tw, 3);
+  // On réduit tant que le libellé déborde de la place laissée par les deux autres.
+  while (nameSize > 9 && lines.length * (nameSize + 2) > dispo) {
+    nameSize -= 1;
+    ctx.font = `700 ${nameSize}px -apple-system, Helvetica, Arial, sans-serif`;
+    lines = wrap(ctx, name, tw, Math.max(1, Math.floor(dispo / (nameSize + 2))));
+  }
+
+  const lineH = nameSize + 2;
+  const bloc = lines.length * lineH + reserve;
+  let y = Math.max(nameSize, Math.floor((H - bloc) / 2) + nameSize);
 
   ctx.fillStyle = "#000";
   ctx.textBaseline = "alphabetic";
-  for (const l of lines) { ctx.fillText(l, tx, y); y += lineH; }
-  if (sub) {
-    ctx.font = "400 12px -apple-system, Helvetica, Arial, sans-serif";
-    ctx.fillText(wrap(ctx, sub, tw, 1)[0] ?? "", tx, y + 2);
-    y += subH;
+  ctx.font = `700 ${nameSize}px -apple-system, Helvetica, Arial, sans-serif`;
+  for (const l of lines) {
+    ctx.fillText(l, tx, y);
+    y += lineH;
   }
-  ctx.font = "400 11px ui-monospace, Menlo, monospace";
-  ctx.fillText(code, tx, Math.min(H - 4, y + 2));
+  if (sub) {
+    ctx.font = `400 ${subSize}px -apple-system, Helvetica, Arial, sans-serif`;
+    ctx.fillText(wrap(ctx, sub, tw, 1)[0] ?? "", tx, y);
+    y += subSize + 2;
+  }
+  ctx.font = `700 ${codeSize}px ui-monospace, Menlo, monospace`;
+  ctx.fillText(code, tx, Math.min(H - 2, y + codeSize - 3));
 
   threshold(ctx, W, H);
 }

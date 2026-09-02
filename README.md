@@ -66,6 +66,20 @@ Une photo fausse est pire qu'une icône. D'où le choix : **proposer, jamais app
 elle, seul Wikipédia répond. Le crédit de l'auteur est enregistré avec la photo et affiché sous
 l'objet, et l'usage est signalé à Unsplash comme leurs conditions le demandent.
 
+## Notices et documents
+
+Chaque objet porte des documents : **un PDF déposé** ou **un lien**. Les deux existent, mais ils
+ne se valent pas — un lien ne s'ouvre pas sans réseau. Pour du matériel qui part à l'étranger,
+c'est le fichier qui compte, et l'interface le met en avant. Stockés dans `docs/` à côté de la
+base, 25 Mo par fichier, servis en `inline` pour s'ouvrir dans l'app.
+
+## Achat et renouvellement
+
+`bought_at`, `price` et `renew_at` sont des champs, plus des phrases noyées dans la description :
+on peut les trier et les relire. **La date de renouvellement rejoint la liste de courses toute
+seule** une fois passée — c'est le cinquième déclencheur, à côté du drapeau manuel, du stock à
+zéro, du seuil et de l'objet manquant.
+
 ## Étiquettes## Étiquettes
 
 Le QR encode `https://<hôte>/s/<code>`, donc **l'appareil photo natif de l'iPhone ouvre la fiche**
@@ -78,9 +92,25 @@ sans passer par l'app. Le scanner intégré (`/scan`) sert à autre chose :
 Un code-barres de fabricant inconnu propose de créer l'objet avec ce code ; scanné à nouveau
 plus tard, il retrouve la fiche.
 
-Si un QR ne se lit pas une fois imprimé, le bouton **QR code seul** réduit le contenu au code
-nu (`IR7MCX`) : le QR devient beaucoup moins dense, mais l'appareil photo natif n'ouvre plus
-la fiche. **Sens A / Sens B** retourne l'étiquette de 180° si elle sort à l'envers.
+### Pourquoi le QR contient le code nu, et pas une adresse
+
+Mesuré, pas supposé. Sur les 90 px de haut disponibles :
+
+| Contenu | Modules | Taille de module | Correction d'erreur |
+|---|---|---|---|
+| adresse `barda.example.com/s/…` | 25×25 | 0,38 mm | L — 7 % |
+| **code nu `IR7MCX`** | **21×21** | **0,50 mm** | **Q — 25 %** |
+
+**+32 % de module et 3,5× plus de correction**, pour le même encombrement. Sur une étiquette
+pliée, sale ou vue de loin, c'est la différence entre lire et ne pas lire. Raccourcir l'adresse
+(retirer `https://`) ne change **rien** : elle reste dans la même version de QR.
+
+Le bouton **QR lien** rétablit l'adresse : elle seule permet à l'appareil photo d'iOS d'ouvrir la
+fiche directement, mais elle coûte cette robustesse. Le scanner de l'app lit les deux.
+
+L'ordre de priorité sur l'étiquette est explicite : **le QR sert d'abord**, puis **le code en
+clair** (c'est lui qu'on lit à l'œil quand le scan refuse), et le libellé prend ce qui reste —
+quitte à rétrécir ou à être coupé. **Sens A / Sens B** retourne l'étiquette de 180° si elle sort à l'envers.
 
 ## Imprimer — qui peut, et comment
 
@@ -125,6 +155,17 @@ dont le parent y a droit. `--queue-only` se contente de déposer les PNG dans
 
 Le protocole BLE vient de [`fichero-printer`](https://github.com/0xmh/fichero-printer) :
 `src/lib/fichero/` côté web (copié tel quel, sans dépendance), et porté en Swift dans l'app iOS.
+
+## Le scanner
+
+Décodage par zxing dans la page, avec trois réglages qui comptent : flux en 1920×1080 (plus de
+pixels sur le QR, donc lecture de plus loin), `TRY_HARDER` (beaucoup plus de tentatives par
+image, c'est ce qui rattrape un code plié), et une liste de formats restreinte pour ne pas perdre
+de temps ailleurs.
+
+**Torche et zoom** ne s'affichent que si le matériel les déclare (`getCapabilities`). iOS ne les
+expose généralement pas à une page web : les boutons resteront absents sur iPhone, et c'est
+volontaire — mieux vaut pas de bouton qu'un bouton mort.
 
 ## Le serveur MCP
 

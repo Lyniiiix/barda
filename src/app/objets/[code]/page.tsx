@@ -7,6 +7,8 @@ import PhotoPicker from "@/components/PhotoPicker";
 import { restockReason } from "@/lib/queries";
 import { getItemByCode } from "@/lib/queries";
 import { lastPrinted } from "@/lib/print";
+import Documents from "@/components/Documents";
+import { listDocs } from "@/lib/docs";
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +78,19 @@ export default async function Objet({ params }: { params: Promise<{ code: string
           {item.category && <span className="chip">{item.category}</span>}
           {item.projects && item.projects.split(" · ").map((p) => <span key={p} className="chip">🎯 {p}</span>)}
           {item.barcode && <span className="chip code">⌗ {item.barcode}</span>}
+          {item.bought_at && (
+            <span className="chip">
+              acheté le {new Date(item.bought_at).toLocaleDateString("fr-FR")}
+              {item.price > 0 && ` · ${item.price} €`}
+            </span>
+          )}
+          {item.renew_at && (
+            <span className="chip">↻ renouvellement {new Date(item.renew_at).toLocaleDateString("fr-FR")}</span>
+          )}
         </div>
       </div>
+
+      <Documents code={item.code} docs={listDocs(item.code)} />
 
       <LabelButton code={item.code} name={item.name} sub={item.lot_name || item.category}
                    lastPrinted={lastPrinted(item.code)} />

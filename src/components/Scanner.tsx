@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { assignItemToLot } from "@/lib/actions";
 import { kindOf, parseScan } from "@/lib/codes";
 
@@ -18,6 +19,9 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
   const [toast, setToast] = useState<Toast | null>(null);
   const [error, setError] = useState("");
   const [count, setCount] = useState(0);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
+  const [torch, setTorch] = useState<boolean | null>(null);   // null = non géré
+  const [zoom, setZoom] = useState<{ min: number; max: number; value: number } | null>(null);
 
   // Les handlers changent à chaque rendu ; la caméra, elle, ne doit démarrer qu'une fois.
   const stateRef = useRef({ mode, lot });
@@ -26,15 +30,48 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
   useEffect(() => {
     let controls: { stop: () => void } | undefined;
     let dead = false;
-    const reader = new BrowserMultiFormatReader();
+
+    // TRY_HARDER décuple les tentatives par image : c'est ce qui rattrape un QR
+    // plié, sali ou vu de loin. La liste de formats évite de perdre du temps
+    // sur des symbologies qu'on ne croisera jamais.
+    const hints = new Map();
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+      BarcodeFormat.CODE_128, BarcodeFormat.DATA_MATRIX,
+    ]);
+    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80 });
 
     (async () => {
       try {
         const c = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" } } },
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+              // Plus de pixels sur le QR : c'est ce qui permet de le lire de loin.
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              // @ts-expect-error contraintes non standard, ignorées si non gérées
+              focusMode: "continuous",
+            },
+          },
           videoRef.current!,
           (result) => { if (result) void onScan(result.getText()); },
         );
+
+        // Torche et zoom ne sont pas exposés partout — iOS en particulier.
+        // On ne montre le bouton que si le matériel le déclare vraiment.
+        const track = (videoRef.current?.srcObject as MediaStream | null)?.getVideoTracks()?.[0];
+        if (track) {
+          trackRef.current = track;
+          const caps = track.getCapabilities?.() as
+            | { torch?: boolean; zoom?: { min: number; max: number } }
+            | undefined;
+          if (caps?.torch) setTorch(false);
+          if (caps?.zoom) {
+            setZoom({ min: caps.zoom.min, max: caps.zoom.max, value: caps.zoom.min });
+          }
+        }
         if (dead) c.stop();
         else controls = c;
       } catch (e) {
@@ -51,6 +88,30 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
   }, []);
 
   const buzz = () => { try { navigator.vibrate?.(40); } catch { /* iOS ignore */ } };
+
+  const toggleTorch = async () => {
+    const track = trackRef.current;
+    if (!track || torch === null) return;
+    const next = !torch;
+    try {
+      // @ts-expect-error `torch` est une contrainte non standard
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setTorch(next);
+    } catch {
+      setToast({ kind: "bad", text: "La torche a été refusée par le navigateur." });
+    }
+  };
+
+  const applyZoom = async (value: number) => {
+    const track = trackRef.current;
+    if (!track || !zoom) return;
+    const v = Math.min(zoom.max, Math.max(zoom.min, value));
+    try {
+      // @ts-expect-error `zoom` est une contrainte non standard
+      await track.applyConstraints({ advanced: [{ zoom: v }] });
+      setZoom({ ...zoom, value: v });
+    } catch { /* certains capteurs refusent en cours de flux */ }
+  };
 
   async function onScan(raw: string) {
     const nowMs = Date.now();
@@ -127,6 +188,23 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
         <div className="scanwrap">
           <video ref={videoRef} playsInline muted />
           <div className="reticle" />
+
+          {(torch !== null || zoom) && (
+            <div className="scan-tools">
+              {torch !== null && (
+                <button className={`btn sm ${torch ? "primary" : ""}`} onClick={toggleTorch}>
+                  {torch ? "🔦 Torche allumée" : "🔦 Torche"}
+                </button>
+              )}
+              {zoom && (
+                <>
+                  <button className="btn sm" onClick={() => applyZoom(zoom.value - (zoom.max - zoom.min) / 8)}>−</button>
+                  <span className="chip">× {zoom.value.toFixed(1)}</span>
+                  <button className="btn sm" onClick={() => applyZoom(zoom.value + (zoom.max - zoom.min) / 8)}>＋</button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 

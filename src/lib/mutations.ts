@@ -16,6 +16,9 @@ export type ItemInput = {
   status?: string;
   restock?: boolean;
   minQty?: number;
+  boughtAt?: string;
+  price?: number;
+  renewAt?: string;
   barcode?: string;
   lot?: string | null;
   projects?: string[];
@@ -44,8 +47,9 @@ export function createItem(input: ItemInput): string {
   const code = newCode("item");
   const t = now();
   db.prepare(`
-    INSERT INTO items (code, name, description, category, qty, unit, status, restock, min_qty, barcode, lot_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO items (code, name, description, category, qty, unit, status, restock, min_qty,
+                       bought_at, price, renew_at, barcode, lot_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     code,
     input.name?.trim() || "Sans nom",
@@ -56,6 +60,9 @@ export function createItem(input: ItemInput): string {
     input.status || "ok",
     input.restock ? 1 : 0,
     input.minQty ?? 0,
+    input.boughtAt ?? "",
+    input.price ?? 0,
+    input.renewAt ?? "",
     input.barcode ?? "",
     lotId(input.lot),
     t, t,
@@ -81,6 +88,9 @@ export function updateItem(code: string, patch: ItemInput): boolean {
   if (patch.status !== undefined) put("status", patch.status || "ok");
   if (patch.restock !== undefined) put("restock", patch.restock ? 1 : 0);
   if (patch.minQty !== undefined) put("min_qty", Math.max(0, patch.minQty));
+  if (patch.boughtAt !== undefined) put("bought_at", patch.boughtAt);
+  if (patch.price !== undefined) put("price", Math.max(0, patch.price));
+  if (patch.renewAt !== undefined) put("renew_at", patch.renewAt);
   if (patch.barcode !== undefined) put("barcode", patch.barcode);
   if (patch.lot !== undefined) put("lot_id", lotId(patch.lot));
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as m from "./mutations";
+import { removeDoc } from "./docs";
 
 /** Adaptateurs FormData → couche de mutation. La logique est dans `mutations.ts`. */
 
@@ -21,6 +22,9 @@ const itemFields = (fd: FormData): m.ItemInput => ({
   status: s(fd.get("status")) || "ok",
   restock: s(fd.get("restock")) === "1",
   minQty: n(fd.get("minQty"), 0),
+  boughtAt: s(fd.get("boughtAt")),
+  price: n(fd.get("price"), 0),
+  renewAt: s(fd.get("renewAt")),
   barcode: s(fd.get("barcode")),
   lot: s(fd.get("lot")) || null,
   projects: fd.getAll("projects").map(String),
@@ -79,6 +83,11 @@ export async function markRestocked(fd: FormData) {
   revalidatePath("/courses");
   revalidatePath("/objets");
   revalidatePath("/");
+}
+
+export async function removeDocument(fd: FormData) {
+  await removeDoc(Number(fd.get("id")));
+  revalidatePath(`/objets/${s(fd.get("code"))}`);
 }
 
 /* -------------------------------------------------------------------- lots */

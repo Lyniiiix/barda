@@ -45,6 +45,11 @@ CREATE TABLE IF NOT EXISTS items (
   min_qty     REAL    NOT NULL DEFAULT 0,
   barcode     TEXT    NOT NULL DEFAULT '',
   -- Nom du fichier dans le dossier photos, à côté de la base. Vide = pas de photo.
+  bought_at   TEXT    NOT NULL DEFAULT '',
+  price       REAL    NOT NULL DEFAULT 0,
+  -- Renouvellement prévu : quand la date tombe, l'objet rejoint la liste de
+  -- courses tout seul. Pour ce qui se périme ou s'use au temps, pas à l'usage.
+  renew_at    TEXT    NOT NULL DEFAULT '',
   photo       TEXT    NOT NULL DEFAULT '',
   -- Crédit de l'auteur : Unsplash l'exige, et ça dit d'où vient l'image.
   photo_credit TEXT   NOT NULL DEFAULT '',
@@ -58,6 +63,21 @@ CREATE TABLE IF NOT EXISTS item_projects (
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   PRIMARY KEY (item_id, project_id)
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  code       TEXT    NOT NULL,
+  -- 'fichier' : PDF déposé dans docs/, lisible hors réseau — c'est le cas qui compte
+  -- 'lien'    : URL, pratique mais inutile sans connexion
+  kind       TEXT    NOT NULL,
+  label      TEXT    NOT NULL,
+  url        TEXT    NOT NULL DEFAULT '',
+  file       TEXT    NOT NULL DEFAULT '',
+  size       INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_code ON documents(code);
 
 CREATE TABLE IF NOT EXISTS print_queue (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +93,18 @@ CREATE TABLE IF NOT EXISTS print_queue (
   printed_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS print_log (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  code    TEXT    NOT NULL DEFAULT '',
+  label   TEXT    NOT NULL,
+  copies  INTEGER NOT NULL DEFAULT 1,
+  -- imprimé | échec | annulé — ce qui est arrivé, pas où en est la file
+  outcome TEXT    NOT NULL,
+  detail  TEXT    NOT NULL DEFAULT '',
+  at      TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_print_log_at ON print_log(at);
 CREATE INDEX IF NOT EXISTS idx_items_lot     ON items(lot_id);
 CREATE INDEX IF NOT EXISTS idx_items_name    ON items(name);
 CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barcode);
@@ -95,6 +127,9 @@ function migrate(db: DatabaseSync) {
   if (!itemCols.includes("min_qty")) db.exec("ALTER TABLE items ADD COLUMN min_qty REAL NOT NULL DEFAULT 0");
   if (!itemCols.includes("photo")) db.exec("ALTER TABLE items ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
   if (!itemCols.includes("photo_credit")) db.exec("ALTER TABLE items ADD COLUMN photo_credit TEXT NOT NULL DEFAULT ''");
+  if (!itemCols.includes("bought_at")) db.exec("ALTER TABLE items ADD COLUMN bought_at TEXT NOT NULL DEFAULT ''");
+  if (!itemCols.includes("price")) db.exec("ALTER TABLE items ADD COLUMN price REAL NOT NULL DEFAULT 0");
+  if (!itemCols.includes("renew_at")) db.exec("ALTER TABLE items ADD COLUMN renew_at TEXT NOT NULL DEFAULT ''");
   // Avant le panier, tout ce qui était en file était destiné au Mac.
   db.exec("UPDATE print_queue SET state = 'relais' WHERE state = 'en_attente'");
 }
@@ -127,10 +162,13 @@ export const db = new Proxy({} as DatabaseSync, {
 
 export const now = () => new Date().toISOString();
 
-/** Les photos vivent à côté de la base, donc dans le même volume persistant. */
-export function photoDir(): string {
-  return resolve(dirname(process.env.BARDA_DB || "./data/barda.db"), "photos");
+/** Photos et documents vivent à côté de la base, donc dans le même volume persistant. */
+function beside(folder: string): string {
+  return resolve(dirname(process.env.BARDA_DB || "./data/barda.db"), folder);
 }
+
+export const photoDir = () => beside("photos");
+export const docDir = () => beside("docs");
 
 /** Les lignes de node:sqlite ont un prototype nul : React n'aime pas les sérialiser. */
 export function row<T>(r: unknown): T {
@@ -152,5 +190,6 @@ export type Item = {
   id: number; code: string; name: string; description: string;
   category: string; qty: number; unit: string; status: string;
   restock: number; min_qty: number; photo: string; photo_credit: string;
+  bought_at: string; price: number; renew_at: string;
   barcode: string; lot_id: number | null; created_at: string; updated_at: string;
 };

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { canvasFromPng, printJobs, printerKind, type PrintJob } from "@/lib/label";
-import { basketForPrinting, markJobsPrinted } from "@/lib/print-actions";
+import { basketForPrinting, markJobsFailed, markJobsPrinted } from "@/lib/print-actions";
 
 /** Au-delà, on demande confirmation : c'est le garde-fou contre l'impression folle. */
 const SEUIL = 10;
@@ -41,6 +41,12 @@ export default function PrintNow({ total }: { total: number }) {
     const res = await printJobs(jobs, (m, ids) => { setMsg(m); setDone(sorties(ids)); });
     // On n'acquitte que ce qui est réellement sorti : une coupure ne perd rien.
     if (res.done.length) await markJobsPrinted(res.done);
+    // Ce qui n'est pas sorti et qui a été interrompu : consigné comme échec,
+    // mais laissé en file pour pouvoir relancer.
+    if (res.error) {
+      const restants = jobs.filter((j) => !res.done.includes(j.id)).map((j) => j.id);
+      if (restants.length) await markJobsFailed(restants, res.error);
+    }
 
     const n = sorties(res.done);
     setMsg(

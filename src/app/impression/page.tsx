@@ -1,7 +1,8 @@
 import Link from "next/link";
 import JobCard from "@/components/JobCard";
+import LogRow from "@/components/LogRow";
 import PrintNow from "@/components/PrintNow";
-import { basket, countLabels, history, sentToRelay } from "@/lib/print";
+import { basket, countLabels, history, historyCounts, sentToRelay } from "@/lib/print";
 import { clearPrintBasket, sendBasketToRelay } from "@/lib/print-actions";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,8 @@ export const dynamic = "force-dynamic";
 export default function Impression() {
   const jobs = basket();
   const relais = sentToRelay();
-  const passees = history(10);
+  const journal = history(30);
+  const compte = historyCounts();
   const total = countLabels("file");
   const totalRelais = countLabels("relais");
 
@@ -66,11 +68,18 @@ export default function Impression() {
         </>
       )}
 
-      {passees.length > 0 && (
+      {journal.length > 0 && (
         <>
           <hr className="sep" />
-          <div className="card-sub" style={{ marginBottom: 6 }}>Déjà sorties</div>
-          {passees.map((j) => <JobCard key={j.id} job={j} archive />)}
+          <div className="row" style={{ marginBottom: 8 }}>
+            <span className="card-sub">Journal</span>
+            <span className="chips" style={{ marginLeft: "auto", marginTop: 0 }}>
+              <span className="chip ok">{compte["imprimé"]} imprimées</span>
+              {compte["échec"] > 0 && <span className="chip bad">{compte["échec"]} échecs</span>}
+              {compte["annulé"] > 0 && <span className="chip warn">{compte["annulé"]} annulées</span>}
+            </span>
+          </div>
+          {journal.map((e) => <LogRow key={e.id} entry={e} />)}
         </>
       )}
     </>

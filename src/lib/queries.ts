@@ -11,13 +11,17 @@ export function restockReason(i: ItemRow): string | null {
   if (i.status === "manquant") return "porté manquant";
   if (i.qty <= 0) return "épuisé";
   if (i.min_qty > 0 && i.qty <= i.min_qty) return `sous le seuil de ${i.min_qty} ${i.unit}`;
+  if (i.renew_at && i.renew_at <= new Date().toISOString().slice(0, 10)) {
+    return `renouvellement prévu le ${new Date(i.renew_at).toLocaleDateString("fr-FR")}`;
+  }
   return "marqué à racheter";
 }
 
 const ITEM_SELECT = `
   SELECT i.*, l.name AS lot_name, l.code AS lot_code,
          CASE WHEN (i.restock = 1 OR i.qty <= 0 OR (i.min_qty > 0 AND i.qty <= i.min_qty)
-                    OR i.status = 'manquant') THEN 1 ELSE 0 END AS a_racheter,
+                    OR i.status = 'manquant'
+                    OR (i.renew_at <> '' AND i.renew_at <= date('now'))) THEN 1 ELSE 0 END AS a_racheter,
          COALESCE((SELECT group_concat(p.name, ' · ')
                    FROM item_projects ip JOIN projects p ON p.id = ip.project_id
                    WHERE ip.item_id = i.id ORDER BY p.name), '') AS projects
@@ -35,7 +39,8 @@ export type ItemFilter = {
  * mais les trois autres cas évitent d'avoir à y penser.
  */
 export const RESTOCK_SQL =
-  "(i.restock = 1 OR i.qty <= 0 OR (i.min_qty > 0 AND i.qty <= i.min_qty) OR i.status = 'manquant')";
+  "(i.restock = 1 OR i.qty <= 0 OR (i.min_qty > 0 AND i.qty <= i.min_qty) " +
+  "OR i.status = 'manquant' OR (i.renew_at <> '' AND i.renew_at <= date('now')))";
 
 export function listItems(f: ItemFilter = {}): ItemRow[] {
   const where: string[] = [];

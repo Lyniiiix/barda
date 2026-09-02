@@ -17,6 +17,13 @@ export async function basketForPrinting() {
   return p.basket().map((j) => ({ ...j, png: p.pngOf(j.id) ?? "" })).filter((j) => j.png);
 }
 
+/** Consigne une tentative ratée. L'étiquette reste en file : on pourra reprendre. */
+export async function markJobsFailed(ids: number[], reason: string) {
+  for (const id of ids) p.markFailed(id, reason);
+  revalidatePath("/impression");
+  return { ok: true };
+}
+
 export async function markJobsPrinted(ids: number[]) {
   p.markPrinted(ids);
   revalidatePath("/impression");
