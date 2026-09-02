@@ -29,6 +29,13 @@ export async function setJobCopies(fd: FormData) {
   revalidatePath("/impression");
 }
 
+export async function moveJobTo(fd: FormData) {
+  const target = String(fd.get("target")) === "relais" ? "relais" : "file";
+  p.moveJob(Number(fd.get("id")), target);
+  revalidatePath("/impression");
+  revalidatePath("/");
+}
+
 export async function removeJob(fd: FormData) {
   p.remove(Number(fd.get("id")));
   revalidatePath("/impression");

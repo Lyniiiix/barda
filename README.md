@@ -53,8 +53,11 @@ Un bouton qui imprime au premier appui coûte cher : un double appui, une étiqu
 on ne sait plus ce qui est déjà sorti. Le chemin normal est donc **le panier** :
 
 - « Ajouter à la file » sur la fiche d'un objet ou d'un lot — **rien ne sort** ;
-- la page `/impression` montre **le nombre d'étiquettes qui vont réellement sortir**, copies
-  comprises, et laisse ajuster ou retirer ;
+- la page `/impression` montre **une carte par étiquette, avec son aperçu réel**, à qui elle est
+  destinée (« à imprimer d'ici » ou « confiée au Mac »), et le nombre d'étiquettes qui vont
+  réellement sortir — copies comprises, pas le nombre de lignes ;
+- chaque carte se modifie, se déplace d'une destination à l'autre, ou **se supprime** — y compris
+  une étiquette déjà confiée au Mac, qu'on peut reprendre ;
 - au-delà de dix, l'impression demande une confirmation explicite ;
 - ajouter deux fois la même étiquette ne fait pas deux lignes : la file le signale ;
 - une coupure en cours de série n'acquitte que ce qui est sorti — le reste reste en file ;

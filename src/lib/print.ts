@@ -98,6 +98,11 @@ export function clearBasket() {
   db.prepare("DELETE FROM print_queue WHERE state = 'file'").run();
 }
 
+/** Déplace une étiquette entre le panier et ce qui est confié au Mac. */
+export function moveJob(id: number, state: "file" | "relais") {
+  db.prepare("UPDATE print_queue SET state = ? WHERE id = ? AND state <> 'imprimé'").run(state, id);
+}
+
 export function markPrinted(ids: number[]) {
   const stmt = db.prepare("UPDATE print_queue SET state = 'imprimé', printed_at = ? WHERE id = ?");
   const t = now();

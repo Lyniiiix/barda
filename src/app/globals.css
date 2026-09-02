@@ -203,3 +203,32 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
   line-height: 0;
 }
 .label-preview canvas { width: 240px; height: 96px; image-rendering: pixelated; }
+
+/* ------------------------------------------------- étiquettes en file */
+
+/* Le PNG stocké est au sens de la tête d'impression (96 × 240) ; on le
+   présente à l'endroit où on le lit, à l'horizontale. */
+.label-thumb {
+  width: 240px;
+  height: 96px;
+  max-width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 6px;
+  flex: none;
+}
+.label-thumb img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 240px;
+  transform: translate(-50%, -50%) rotate(90deg);
+  image-rendering: pixelated;
+}
+
+.job { display: flex; gap: 12px; align-items: flex-start; }
+@media (max-width: 460px) {
+  .job { flex-direction: column; }
+}
