@@ -182,10 +182,15 @@ nixpacks choisit Node 22 (`ERR_UNKNOWN_BUILTIN_MODULE`).
 | `UNSPLASH_ACCESS_KEY` | optionnel : suggestions de photos Unsplash |
 | `BARDA_DEMO` | `1` pour le mode démo (voir plus bas) |
 | `BARDA_SIGNATURE` | pied de page : vide pour « Conçu par can.sys », `off` pour le retirer |
+| `BARDA_CF_ACCESS_TEAM` · `BARDA_CF_ACCESS_AUD` | derrière Cloudflare Access : nom de l'équipe et `aud` de l'application ; Barda refuse alors toute requête sans jeton Access valide |
 
 **Sécurité.** L'accès tient en un mot de passe et un cookie signé d'un an, et le site est en
-`noindex`. C'est suffisant derrière un réseau privé (Tailscale) ou une porte d'accès (Cloudflare
-Access…) ; sur un domaine public nu, mets-en une.
+`noindex`. Sur un domaine public, mets une porte devant : un réseau privé (Tailscale) ou
+Cloudflare Access. Avec Access, pose `BARDA_CF_ACCESS_TEAM` et `BARDA_CF_ACCESS_AUD` : Barda
+vérifie alors lui-même la signature du jeton que Cloudflare ajoute à chaque requête, ce qui
+ferme le contournement par l'IP de l'origine. Laisse hors d'Access `/api/mcp` et
+`/api/print-queue`, appelés par des machines qui ont chacune leur jeton. La sonde de santé du
+conteneur est `/api/sante`.
 
 **Sauvegarde.** `Réglages ▸ Exporter en JSON` sort tout (objets, lots, projets, liens). Les photos
 et les PDF sont dans le volume, à côté de la base : sauvegarde le volume entier.
