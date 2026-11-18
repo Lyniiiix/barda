@@ -1,5 +1,5 @@
 #!/bin/sh
-# Coolify monte /data en bind-mount appartenant à root : l'utilisateur `nextjs`
+# Un bind-mount sur /data appartient souvent à root (Coolify, docker run -v…) : l'utilisateur `nextjs`
 # ne pourrait pas y écrire. On répare la propriété en root, puis on abandonne
 # les privilèges avant de lancer le serveur.
 set -e

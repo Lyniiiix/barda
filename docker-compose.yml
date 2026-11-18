@@ -1,0 +1,17 @@
+# Barda chez soi : `cp .env.example .env`, remplir, puis `docker compose up -d`.
+# L'app écoute sur le port 3000 ; mets-la derrière ton reverse proxy HTTPS habituel
+# (la caméra du téléphone n'est accessible qu'en HTTPS).
+services:
+  barda:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      # La base SQLite, les photos et les PDF vivent ici. Sans ce volume, tout
+      # disparaît au prochain redéploiement.
+      - barda-data:/data
+
+volumes:
+  barda-data:

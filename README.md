@@ -1,7 +1,32 @@
-# Barda — inventaire du matériel
+<p align="center">
+  <img src="src/app/icon.svg" width="88" height="88" alt="">
+</p>
 
-Ce que j'ai, dans quel sac, et pour quel projet. Conçu pour être utilisé **à une main sur un
-iPhone**, en scannant des étiquettes QR imprimées sur la Fichero D11s.
+<h1 align="center">barda.</h1>
+
+<p align="center">
+  Ce que j'ai, dans quel sac, et pour quel projet.<br>
+  Un inventaire du matériel pensé pour le téléphone, avec des étiquettes QR imprimées en Bluetooth.
+</p>
+
+<p align="center">
+  <a href="https://showcase-barda.can-ali.fr"><b>Voir la démo</b></a> ·
+  <a href="#installer">Installer</a> ·
+  <a href="#imprimantes-prises-en-charge">Imprimantes</a> ·
+  <a href="https://github.com/Lyniiiix/barda-ios">App iOS</a>
+</p>
+
+<p align="center">
+  <img src="docs/apercu-desktop.png" alt="Barda sur ordinateur : barre latérale, statistiques, derniers objets et lots" width="820"><br>
+  <img src="docs/apercu-mobile.png" alt="Barda sur téléphone : barre d'onglets en verre" width="260">
+  <img src="docs/apercu-fiche.png" alt="La fiche d'un objet et l'aperçu de son étiquette" width="540">
+</p>
+
+> **In English.** Barda is a self-hosted inventory for tools and gear: items, the bags or boxes
+> they live in (*lots*), and the projects they serve. Each item and lot gets a 12 mm QR label
+> printed over Bluetooth (Fichero D11s today, more printers can be added). Scan a label to open
+> the item, or scan a series to put things away. Next.js + SQLite, one Docker container, an MCP
+> server so an AI assistant can read and update the inventory. The UI is in French.
 
 ## Le modèle
 
@@ -9,245 +34,216 @@ Trois objets, et c'est tout :
 
 | | Code | À quoi ça sert |
 |---|---|---|
-| **Objet** | `I…` | Une chose. Un fer à souder, un disque dur, un rouleau de gaine, une trousse de secours. Nom, description libre, quantité + unité, catégorie, état, **photo**. |
+| **Objet** | `I…` | Une chose. Un fer à souder, un disque dur, un rouleau de gaine, une trousse de secours. Nom, description libre, quantité et unité, catégorie, état, photo, notices. |
 | **Lot** | `L…` | *Où* c'est rangé : un sac, une caisse, un tiroir. Nommé « Lot 1 », « Lot 2 »… par défaut. Un objet est dans zéro ou un lot. |
 | **Projet** | `P…` | *À quoi* ça sert : « Voiture enfant », « Support CAN ». Un objet peut servir à plusieurs projets. |
 
 La fiche d'un projet répond à la seule question qui compte au moment de charger la voiture :
 **quels lots embarquer**.
 
-Chaque objet et chaque lot porte un code court à 6 caractères (`IR7MCX`, `LGJWAQ`) — l'alphabet
+Chaque objet et chaque lot porte un code court à 6 caractères (`IR7MCX`, `LGJWAQ`). L'alphabet
 exclut `I`, `L`, `O` et `U`, illisibles sur une étiquette de 12 mm.
 
 ## État, et liste de courses
 
 Deux choses différentes, volontairement séparées :
 
-- **l'état** décrit la chose — `ok`, `usé`, `à réparer`, `à remplacer`, `prêté`, `manquant` ;
+- **l'état** décrit la chose : `ok`, `usé`, `à réparer`, `à remplacer`, `prêté`, `manquant` ;
 - **« à racheter »** est une intention, pas un état. Un tournevis neuf peut être sur la liste de
   courses parce qu'on en veut un deuxième ; un foret usé peut ne pas y être parce qu'on s'en
   contente.
 
-La page `/courses` rassemble tout ce qui est à reprendre. Un objet y arrive de quatre façons :
-coché à la main, **quantité tombée à zéro** (fait tout seul), **passé sous son seuil**, ou porté
-manquant. Chaque ligne dit *pourquoi*, et « Racheté » remet le stock et sort l'objet de la liste.
+La page `/courses` rassemble tout ce qui est à reprendre. Un objet y arrive de cinq façons :
+coché à la main, **quantité tombée à zéro**, **passé sous son seuil**, porté manquant, ou
+**date de renouvellement passée** (une trousse de secours, un extincteur). Chaque ligne dit
+*pourquoi*, et « Racheté » remet le stock et sort l'objet de la liste.
 
 Le **seuil** (`min_qty`) évite d'avoir à y penser : trois rouleaux d'étain avec un seuil à 1, et
-l'étain remonte tout seul le jour où il n'en reste qu'un. À 0, pas de seuil — c'est le défaut,
+l'étain remonte tout seul le jour où il n'en reste qu'un. À 0, pas de seuil : c'est le défaut,
 pour ne pas imposer de compter ce qu'on ne veut pas compter.
 
-## Photos et icônes
+## Photos, notices et documents
 
-Sans photo, l'objet affiche **l'icône de sa catégorie** (`iconFor` dans `constants.ts`) : il n'y
-a jamais de vignette vide dans une liste. Quatre façons d'en mettre une, dans cet ordre d'utilité :
+Sans photo, l'objet affiche **l'icône de sa catégorie** : il n'y a jamais de vignette vide.
+Quatre façons d'en mettre une, dans cet ordre d'utilité :
 
 | | |
 |---|---|
-| **📷 Photo** | l'appareil du téléphone. Réduite à 1024 px **dans le navigateur** avant l'envoi — inutile de faire transiter 4 Mo en 4G. |
-| **📋 Coller** | le vrai chemin pour un produit précis : copier l'image sur la page du vendeur, coller ici. Exact, instantané, rien à maintenir. |
-| **🔗 Adresse** | une URL d'image, récupérée côté serveur (le navigateur ne peut pas, à cause de CORS). |
-| **🔍 Suggérer** | Unsplash + Wikipédia, **proposés puis validés à l'œil**. |
+| **Photo** | l'appareil du téléphone, réduite à 1024 px **dans le navigateur** avant l'envoi. |
+| **Coller** | le vrai chemin pour un produit précis : copier l'image sur la page du vendeur, coller ici. |
+| **Adresse** | une URL d'image, récupérée côté serveur (le navigateur ne peut pas, à cause de CORS). |
+| **Suggérer** | Unsplash et Wikipédia, **proposés puis validés à l'œil**, jamais appliqués tout seuls. |
 
-### Pourquoi pas de récupération automatique
+Pourquoi pas de récupération automatique : mesuré avant d'écrire la moindre ligne, Wikipédia
+répond juste sur le générique (perceuse, multimètre) mais « tresse à dessouder » renvoie le dieu
+égyptien Seth, et scraper une boutique casse en silence. **Une photo fausse est pire qu'une icône.**
 
-Mesuré le 02/09 avant d'écrire la moindre ligne :
+Chaque objet porte aussi des documents : **un PDF déposé** ou **un lien**. Les deux existent, mais
+un lien ne s'ouvre pas sans réseau ; pour du matériel qui part loin, c'est le fichier qui compte.
 
-- **Openverse** : injoignable (HTTP 000).
-- **Wikimedia Commons** : « rivet nut tool » renvoie des catalogues de graines de 1918.
-- **Wikipédia** : juste sur le générique (fer à souder, perceuse, multimètre, disque dur), mais
-  « tresse à dessouder » renvoie **Seth, dieu égyptien**, et 429 au bout de dix requêtes.
-- **Amazon** : scraper leur page viole leurs conditions, et ils bloquent les IP de datacenter —
-  le VPS prendrait un CAPTCHA. Le sélecteur casserait en silence, et on se retrouverait sans
-  photos le jour où on en a besoin.
+## Étiquettes
 
-Une photo fausse est pire qu'une icône. D'où le choix : **proposer, jamais appliquer tout seul**.
-
-**Unsplash** demande une clé gratuite (unsplash.com/developers) dans `UNSPLASH_ACCESS_KEY`. Sans
-elle, seul Wikipédia répond. Le crédit de l'auteur est enregistré avec la photo et affiché sous
-l'objet, et l'usage est signalé à Unsplash comme leurs conditions le demandent.
-
-## Notices et documents
-
-Chaque objet porte des documents : **un PDF déposé** ou **un lien**. Les deux existent, mais ils
-ne se valent pas — un lien ne s'ouvre pas sans réseau. Pour du matériel qui part à l'étranger,
-c'est le fichier qui compte, et l'interface le met en avant. Stockés dans `docs/` à côté de la
-base, 25 Mo par fichier, servis en `inline` pour s'ouvrir dans l'app.
-
-## Achat et renouvellement
-
-`bought_at`, `price` et `renew_at` sont des champs, plus des phrases noyées dans la description :
-on peut les trier et les relire. **La date de renouvellement rejoint la liste de courses toute
-seule** une fois passée — c'est le cinquième déclencheur, à côté du drapeau manuel, du stock à
-zéro, du seuil et de l'objet manquant.
-
-## Étiquettes## Étiquettes
-
-Le QR encode `https://<hôte>/s/<code>`, donc **l'appareil photo natif de l'iPhone ouvre la fiche**
-sans passer par l'app. Le scanner intégré (`/scan`) sert à autre chose :
-
-- **Consulter** — scan → la fiche s'ouvre ;
-- **Ranger** — on choisit un lot cible, puis on scanne les objets à la chaîne : chacun est
-  rangé dans le lot sans quitter la caméra. Scanner l'étiquette d'un *lot* change la cible.
-
-Un code-barres de fabricant inconnu propose de créer l'objet avec ce code ; scanné à nouveau
-plus tard, il retrouve la fiche.
-
-### Pourquoi le QR contient le code nu, et pas une adresse
-
-Mesuré, pas supposé. Sur les 90 px de haut disponibles :
+Le QR encode le **code nu** (`IR7MCX`), pas une adresse. Mesuré sur les 90 px de haut disponibles :
 
 | Contenu | Modules | Taille de module | Correction d'erreur |
 |---|---|---|---|
-| adresse `barda.example.com/s/…` | 25×25 | 0,38 mm | L — 7 % |
-| **code nu `IR7MCX`** | **21×21** | **0,50 mm** | **Q — 25 %** |
+| adresse `https://…/s/…` | 25×25 | 0,38 mm | L : 7 % |
+| **code nu `IR7MCX`** | **21×21** | **0,50 mm** | **Q : 25 %** |
 
 **+32 % de module et 3,5× plus de correction**, pour le même encombrement. Sur une étiquette
-pliée, sale ou vue de loin, c'est la différence entre lire et ne pas lire. Raccourcir l'adresse
-(retirer `https://`) ne change **rien** : elle reste dans la même version de QR.
+pliée, sale ou vue de loin, c'est la différence entre lire et ne pas lire. Le bouton **QR lien**
+rétablit l'adresse (seule l'adresse permet à l'appareil photo d'iOS d'ouvrir la fiche
+directement) ; le scanner de l'app lit les deux.
 
-Le bouton **QR lien** rétablit l'adresse : elle seule permet à l'appareil photo d'iOS d'ouvrir la
-fiche directement, mais elle coûte cette robustesse. Le scanner de l'app lit les deux.
+Le scanner intégré (`/scan`) sert à deux choses : **consulter** (scan, la fiche s'ouvre) et
+**ranger** (on choisit un lot, puis on scanne les objets à la chaîne). Un code-barres de
+fabricant inconnu propose de créer l'objet avec ce code.
 
-L'ordre de priorité sur l'étiquette est explicite : **le QR sert d'abord**, puis **le code en
-clair** (c'est lui qu'on lit à l'œil quand le scan refuse), et le libellé prend ce qui reste —
-quitte à rétrécir ou à être coupé. **Sens A / Sens B** retourne l'étiquette de 180° si elle sort à l'envers.
+### La file d'impression
 
-## Imprimer — qui peut, et comment
+Un bouton qui imprime au premier appui coûte cher : un double appui, une étiquette de trop. Le
+chemin normal est donc **le panier** : on ajoute à la file depuis les fiches, la page
+`/impression` montre **une carte par étiquette avec son aperçu réel**, et rien ne sort tant qu'on
+ne l'a pas demandé. Au-delà de dix étiquettes, l'impression demande une confirmation ; une
+coupure en cours de série n'acquitte que ce qui est sorti ; chaque fiche dit « imprimée le … ».
 
-Safari **n'expose pas le Bluetooth** aux pages web, et ne le fera pas — ni sur iPhone, ni sur
-Mac (Web Bluetooth : Chrome, Edge, Opera ; pas Safari, pas Firefox). D'où trois chemins, que la
-page choisit toute seule :
+## Imprimantes prises en charge
+
+| Imprimante | Étiquettes | Navigateur (Web Bluetooth) | App iOS | Relais Mac |
+|---|---|---|---|---|
+| **Fichero D11s** | 12 × 30 mm, 203 dpi | Chrome, Edge | oui | oui |
+
+Safari **n'expose pas le Bluetooth** aux pages web, ni sur iPhone ni sur Mac. D'où trois chemins,
+que la page choisit toute seule :
 
 | Contexte | Chemin | Ce qu'il faut |
 |---|---|---|
-| App iOS [`barda-ios`](../barda-ios) | pont natif → CoreBluetooth | l'app installée |
-| Chrome / Edge, sur Mac ou Android | Web Bluetooth | rien |
-| Safari, ou n'importe quoi d'autre | « Confier au Mac » → relais | `npm run spool` qui tourne |
+| App iOS [`barda-ios`](https://github.com/Lyniiiix/barda-ios) | pont natif vers CoreBluetooth | l'app installée |
+| Chrome / Edge, sur ordinateur ou Android | Web Bluetooth | rien |
+| Safari, ou n'importe quoi d'autre | « Confier au Mac », puis le relais | `npm run spool` qui tourne sur un Mac |
 
-### La file, et pourquoi elle existe
-
-Un bouton qui imprime au premier appui coûte cher : un double appui, une étiquette de trop, et
-on ne sait plus ce qui est déjà sorti. Le chemin normal est donc **le panier** :
-
-- « Ajouter à la file » sur la fiche d'un objet ou d'un lot — **rien ne sort** ;
-- la page `/impression` montre **une carte par étiquette, avec son aperçu réel**, à qui elle est
-  destinée (« à imprimer d'ici » ou « confiée au Mac »), et le nombre d'étiquettes qui vont
-  réellement sortir — copies comprises, pas le nombre de lignes ;
-- chaque carte se modifie, se déplace d'une destination à l'autre, ou **se supprime** — y compris
-  une étiquette déjà confiée au Mac, qu'on peut reprendre ;
-- au-delà de dix, l'impression demande une confirmation explicite ;
-- ajouter deux fois la même étiquette ne fait pas deux lignes : la file le signale ;
-- une coupure en cours de série n'acquitte que ce qui est sorti — le reste reste en file ;
-- chaque fiche affiche **« déjà imprimée le … »**, pour ne pas refaire une étiquette existante.
-
-`/api/print-queue` ne sert au relais Mac que l'état `relais` : **ce qui est dans le panier n'est
-jamais imprimé par surprise**, même si le relais tourne en permanence.
-
-Le relais imprime lui-même via la CLI `fichero` — un seul terminal à laisser ouvert :
+Le relais imprime via la CLI de [`fichero-printer`](https://github.com/0xmh/fichero-printer), et
+doit être lancé **depuis Terminal.app** : macOS n'accorde le Bluetooth qu'aux processus dont le
+parent y a droit.
 
 ```bash
 BARDA_URL=https://barda.example.com BARDA_PRINT_TOKEN=… npm run spool
 ```
 
-⚠️ **Depuis Terminal.app**, pas depuis launchd : macOS n'accorde le Bluetooth qu'aux processus
-dont le parent y a droit. `--queue-only` se contente de déposer les PNG dans
-`~/MCP/fichero-printer/queue`, pour l'ancien `spooler.sh`.
+### Ajouter une imprimante
 
-Le protocole BLE vient de [`fichero-printer`](https://github.com/0xmh/fichero-printer) :
-`src/lib/fichero/` côté web (copié tel quel, sans dépendance), et porté en Swift dans l'app iOS.
+1. **Décrire le modèle** dans `src/lib/printers/models.ts`, en ajoutant une entrée à `PRINTERS` :
+   - un `id` stable (`marque-modele`), qui ne changera plus ;
+   - le `name` affiché, le `dpi`, la largeur de tête `headDots` et `bytesPerRow` ;
+   - les formats d'étiquette dans `labels` (largeur dans le sens de la tête, longueur dans le sens du papier) ;
+   - la plage de `density` et les `transports` réellement pris en charge.
 
-## Le scanner
+   Le rendu s'adapte seul : la hauteur de l'étiquette suit le modèle, le gabarit garde ses proportions.
+2. **Navigateur** : écrire un pilote `src/lib/printers/<id>.ts` qui renvoie un `PrinterDriver`.
+   Il reçoit une trame 1 bit déjà encodée et la transmet. L'inscrire dans la table `WEB_BLUETOOTH`
+   de `src/lib/printers/index.ts`.
+3. **iPhone** : dans `barda-ios`, écrire `Barda/<Modele>.swift`, une classe conforme à
+   `LabelPrinter`, avec le même `id` et le même `bytesPerRow` que côté web, puis l'ajouter à
+   `Printers.catalog` dans `Barda/Printers.swift`.
+4. **Relais** : ajouter une entrée à `RELAY` dans `scripts/spool.mjs`, avec la commande qui
+   imprime un PNG, choisie par `BARDA_PRINTER=<id>`.
+5. Tant qu'il n'y a qu'une imprimante, `activePrinter()` la renvoie directement : c'est le seul
+   endroit à transformer en réglage pour en gérer plusieurs.
 
-Décodage par zxing dans la page, avec trois réglages qui comptent : flux en 1920×1080 (plus de
-pixels sur le QR, donc lecture de plus loin), `TRY_HARDER` (beaucoup plus de tentatives par
-image, c'est ce qui rattrape un code plié), et une liste de formats restreinte pour ne pas perdre
-de temps ailleurs.
+Un transport non implémenté pour un modèle ne casse rien : la page propose les chemins restants.
+Les contributions pour d'autres étiqueteuses Bluetooth (Niimbot, Phomemo…) sont bienvenues.
 
-**Torche et zoom** ne s'affichent que si le matériel les déclare (`getCapabilities`). iOS ne les
-expose généralement pas à une page web : les boutons resteront absents sur iPhone, et c'est
-volontaire — mieux vaut pas de bouton qu'un bouton mort.
+## Installer
+
+Un seul conteneur, une base SQLite, un volume. Avec Docker Compose :
+
+```bash
+git clone https://github.com/Lyniiiix/barda.git && cd barda
+cp .env.example .env        # puis BARDA_PASSWORD et BARDA_SECRET au minimum
+docker compose up -d        # écoute sur 127.0.0.1:3000
+```
+
+Mets-le derrière ton reverse proxy HTTPS habituel : **la caméra du téléphone n'est accessible
+qu'en HTTPS**. Pour ma part, Barda tourne sous **Coolify**, derrière son **Traefik** : un projet
+avec ce dépôt comme source, le `Dockerfile` comme méthode de build, un volume persistant sur
+`/data`, et les variables d'environnement ci-dessous. Caddy, Nginx Proxy Manager ou un tunnel
+font aussi bien l'affaire.
+
+⚠️ **Utilise le `Dockerfile`**, pas une détection automatique : `node:sqlite` exige Node ≥ 24, et
+nixpacks choisit Node 22 (`ERR_UNKNOWN_BUILTIN_MODULE`).
+
+| Variable | Rôle |
+|---|---|
+| `BARDA_PASSWORD` | mot de passe unique d'accès (obligatoire en production) |
+| `BARDA_SECRET` | clé HMAC du cookie de session, `openssl rand -hex 32` (obligatoire en production) |
+| `BARDA_DB` | chemin du fichier SQLite (`/data/barda.db` dans le conteneur) |
+| `BARDA_PRINT_TOKEN` | jeton du relais d'impression (en-tête `x-barda-token`) |
+| `BARDA_MCP_TOKEN` | jeton du serveur MCP ; sans lui, `/api/mcp` refuse tout |
+| `UNSPLASH_ACCESS_KEY` | optionnel : suggestions de photos Unsplash |
+| `BARDA_DEMO` | `1` pour le mode démo (voir plus bas) |
+| `BARDA_SIGNATURE` | pied de page : vide pour « Conçu par can.sys », `off` pour le retirer |
+
+**Sécurité.** L'accès tient en un mot de passe et un cookie signé d'un an, et le site est en
+`noindex`. C'est suffisant derrière un réseau privé (Tailscale) ou une porte d'accès (Cloudflare
+Access…) ; sur un domaine public nu, mets-en une.
+
+**Sauvegarde.** `Réglages ▸ Exporter en JSON` sort tout (objets, lots, projets, liens). Les photos
+et les PDF sont dans le volume, à côté de la base : sauvegarde le volume entier.
+
+## Mode démo
+
+`BARDA_DEMO=1` ouvre l'app sans mot de passe, sur un inventaire fictif créé au premier démarrage,
+**en lecture seule** : le middleware refuse toute requête qui écrit (formulaire, action serveur,
+envoi de fichier), ainsi que le MCP, le relais et les suggestions de photos. C'est ce qui tourne
+sur [showcase-barda.can-ali.fr](https://showcase-barda.can-ali.fr).
 
 ## Le serveur MCP
 
-`POST /api/mcp` — un serveur MCP (JSON-RPC, transport HTTP, sans état) servi par l'app
-elle-même, pour que Claude puisse consulter et tenir l'inventaire. Il vit avec les données :
-rien à lancer sur le Mac, et il reste joignable de n'importe où.
+`POST /api/mcp` : un serveur MCP (JSON-RPC, transport HTTP, sans état) servi par l'app elle-même,
+pour qu'un assistant puisse consulter et tenir l'inventaire.
 
 ```bash
 claude mcp add --transport http barda https://barda.example.com/api/mcp \
   --header "Authorization: Bearer $BARDA_MCP_TOKEN"
 ```
 
-Douze outils, en français comme le reste :
-
-| | |
+| Outil | |
 |---|---|
-| `inventaire_apercu` | vue d'ensemble — totaux, lots, projets, ce qui cloche. Le point d'entrée. |
+| `inventaire_apercu` | vue d'ensemble : totaux, lots, projets, ce qui cloche. Le point d'entrée. |
 | `objets_chercher` · `objet_lire` | recherche et détail |
 | `lots_lister` · `projets_lister` | les contenants et les usages |
-| `projet_besoins` | ce qu'il faut pour un projet, **groupé par lot** — donc quoi embarquer |
+| `projet_besoins` | ce qu'il faut pour un projet, **groupé par lot**, donc quoi embarquer |
 | `objet_ajouter` · `objet_modifier` | création et modification partielle |
-| `objet_ranger` · `stock_ajuster` | changer de lot, décompter un consommable |
+| `objet_ranger` · `stock_ajuster` · `stock_reappro` | changer de lot, décompter, racheter |
+| `objet_document_lier` · `a_racheter_lister` | notices et liste de courses |
 | `lot_creer` · `projet_creer` | nouveaux contenants et projets |
 
-**Aucun outil ne supprime.** Un modèle peut se tromper de code, et un objet effacé ne se
-retrouve pas ; les suppressions restent à faire dans l'interface.
-
-Sans `BARDA_MCP_TOKEN` défini, le point d'accès **refuse tout** — il ne s'ouvre jamais par
-défaut. Les écritures passent par `src/lib/mutations.ts`, exactement le même code que les
-formulaires de l'app : pas de seconde définition de « modifier un objet » qui pourrait diverger.
+**Aucun outil ne supprime.** Un modèle peut se tromper de code, et un objet effacé ne se retrouve
+pas. Les écritures passent par `src/lib/mutations.ts`, exactement le même code que les formulaires.
 
 ## Développement
 
 ```bash
 npm install
-npm run dev     # http://localhost:3210
+npm run dev     # http://localhost:3210, mot de passe « barda » hors production
 ```
 
-`.env.local` :
+Node ≥ 24 obligatoire. Base **SQLite** par `node:sqlite` : aucune dépendance native, aucun ORM,
+le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage. Pour travailler sur
+des données d'exemple : `BARDA_DEMO=1 BARDA_DB=/tmp/demo.db npm run dev`.
 
-| Variable | Rôle |
-|---|---|
-| `BARDA_PASSWORD` | mot de passe unique d'accès |
-| `BARDA_SECRET` | clé HMAC du cookie de session (1 an) |
-| `BARDA_DB` | chemin du fichier SQLite |
-| `BARDA_PRINT_TOKEN` | jeton du relais d'impression (en-tête `x-barda-token`) |
-| `BARDA_MCP_TOKEN` | jeton du serveur MCP (en-tête `Authorization: Bearer …`) |
-| `UNSPLASH_ACCESS_KEY` | optionnel — suggestions de photos Unsplash |
+## La DA
 
-⚠️ **Node ≥ 24 obligatoire** (`engines` dans `package.json`) : `node:sqlite` n'est un module
-intégré utilisable qu'à partir de là. Un constructeur qui choisit Node 22 — nixpacks le fait par
-défaut — échoue sur `ERR_UNKNOWN_BUILTIN_MODULE`. Le `Dockerfile` épingle `node:26-alpine` ;
-**c'est lui qu'il faut utiliser**, pas la détection automatique.
+Barda fait partie de la « Suite » de can.sys : une tuile nuit, une initiale en serif
+(Source Serif 4), un point de couleur propre à chaque app (ambre pour Barda), Inter pour le texte
+et JetBrains Mono pour les codes. Les icônes viennent de [Lucide](https://lucide.dev).
 
-Base **SQLite** par `node:sqlite` — aucune dépendance native, aucun ORM,
-le schéma est en haut de `src/lib/db.ts` et se crée tout seul au démarrage.
+## Crédits et licence
 
-## Déploiement
+- Protocole BLE de la D11s : [0xmh/fichero-printer](https://github.com/0xmh/fichero-printer) (MIT),
+  dont la partie web dérive de [NiimBlue](https://github.com/MultiMote/niimblue) (MIT). Voir
+  `src/lib/fichero/NOTICE.md`.
+- Lecture des codes : [ZXing](https://github.com/zxing-js/library) (Apache 2.0).
+- Icônes : [Lucide](https://lucide.dev) (ISC). Polices : Inter, Source Serif 4, JetBrains Mono (OFL).
 
-En production sur **https://barda.example.com** — conteneur posé à la main sur le VPS, derrière le
-Traefik existant. Redéployer :
-
-```bash
-./scripts/deploy-vps.sh
-```
-
-Reconstruit l'image sur le VPS depuis `HEAD` et remplace le conteneur, sans toucher aux secrets
-(`/opt/barda/barda.env`) ni aux données (`/opt/barda/data`).
-
-### Reprise par Coolify
-
-Comme `tools` : projet Coolify, source GitHub, `Dockerfile`, push sur `main` → redéploiement.
-
-- **Volume persistant obligatoire** : `/data` (la base y vit). Sans lui, tout disparaît au
-  prochain déploiement.
-- Le repo doit être **ajouté explicitement** à l'installation de la GitHub App (elle est en
-  « selected repositories »), sinon le clone échoue.
-- DNS : rien à faire, le A wildcard `*.example.com` couvre le sous-domaine.
-- Pas de Cloudflare Access : une redirection de login casserait l'usage caméra en intervention.
-  La protection est le mot de passe + le cookie signé, et le site est en `noindex`.
-
-## Sauvegarde
-
-`Réglages ▸ Exporter en JSON` sort tout (objets, lots, projets, liens). C'est **la seule copie
-lisible** : à garder ailleurs, et à intégrer à la chaîne `age` → un stockage distant comme le reste.
+Barda est sous licence [MIT](LICENSE). Conçu par [can.sys](https://can-ali.fr).
