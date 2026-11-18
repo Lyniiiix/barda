@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, FileUp, Link2, X } from "lucide-react";
 import type { Doc } from "@/lib/docs";
 import { removeDocument } from "@/lib/actions";
 
@@ -63,7 +64,7 @@ export default function Documents({ code, docs }: { code: string; docs: Doc[] })
 
   return (
     <div className="card">
-      <div className="card-sub" style={{ marginTop: 0, marginBottom: 8 }}>
+      <div className="section-title" style={{ marginTop: 0 }}>
         Notices et documents
       </div>
 
@@ -75,8 +76,10 @@ export default function Documents({ code, docs }: { code: string; docs: Doc[] })
       )}
 
       {docs.map((d) => (
-        <div className="row" key={d.id} style={{ padding: "7px 0", borderBottom: "1px solid var(--line)" }}>
-          <span>{d.kind === "fichier" ? "📄" : "🔗"}</span>
+        <div className="row" key={d.id} style={{ padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
+          {d.kind === "fichier"
+            ? <FileText size={17} strokeWidth={1.9} style={{ color: "var(--fg-dim)" }} aria-hidden />
+            : <Link2 size={17} strokeWidth={1.9} style={{ color: "var(--fg-dim)" }} aria-hidden />}
           <a
             href={d.kind === "fichier" ? `/api/doc/fichier/${d.id}` : d.url}
             target="_blank"
@@ -92,7 +95,7 @@ export default function Documents({ code, docs }: { code: string; docs: Doc[] })
           <form action={removeDocument}>
             <input type="hidden" name="id" value={d.id} />
             <input type="hidden" name="code" value={code} />
-            <button className="btn sm danger" type="submit">✕</button>
+            <button className="btn sm icon danger" type="submit" aria-label="Retirer le document"><X size={15} aria-hidden /></button>
           </form>
         </div>
       ))}
@@ -102,20 +105,18 @@ export default function Documents({ code, docs }: { code: string; docs: Doc[] })
 
       <div className="row wrap" style={{ marginTop: 10 }}>
         <button className="btn sm primary" onClick={() => input.current?.click()} disabled={busy}>
-          📄 Déposer un PDF
+          <FileUp size={15} aria-hidden />Déposer un PDF
         </button>
-        <button className="btn sm" onClick={() => setShowLink(!showLink)}>🔗 Ajouter un lien</button>
+        <button className="btn sm" onClick={() => setShowLink(!showLink)}><Link2 size={15} aria-hidden />Ajouter un lien</button>
       </div>
 
       {showLink && (
         <div style={{ marginTop: 8 }}>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Notice constructeur"
-                 style={{ width: "100%", background: "var(--bg-elev)", border: "1px solid var(--line)",
-                          borderRadius: 10, padding: "9px 10px", fontSize: 16, marginBottom: 6 }} />
+          <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Notice constructeur"
+                 style={{ padding: "8px 11px", marginBottom: 6 }} />
           <div className="row">
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…"
-                   style={{ flex: 1, background: "var(--bg-elev)", border: "1px solid var(--line)",
-                            borderRadius: 10, padding: "9px 10px", fontSize: 16 }} />
+            <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…"
+                   style={{ flex: 1, padding: "8px 11px" }} />
             <button className="btn sm primary" onClick={addLink} disabled={busy || !url}>OK</button>
           </div>
         </div>

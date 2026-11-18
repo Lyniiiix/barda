@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Printer } from "lucide-react";
 import { canvasFromPng, printJobs, printerKind, type PrintJob } from "@/lib/label";
 import { basketForPrinting, markJobsFailed, markJobsPrinted } from "@/lib/print-actions";
 
@@ -80,7 +81,7 @@ export default function PrintNow({ total }: { total: number }) {
           ? `Impression… ${done}/${total}`
           : state === "confirme"
             ? `Confirmer : ${total} étiquettes vont sortir`
-            : `🖨 Imprimer les ${total} étiquettes`}
+            : <><Printer size={18} aria-hidden />Imprimer les {total} étiquettes</>}
       </button>
       {state === "confirme" && (
         <button className="btn wide" onClick={() => setState("prêt")} style={{ marginTop: 8 }}>

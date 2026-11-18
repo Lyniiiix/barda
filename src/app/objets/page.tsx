@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Package, Plus, Search, SearchX, ShoppingCart, Target } from "lucide-react";
 import { categoriesUsed, listItems, listLots, listProjects } from "@/lib/queries";
 import { STATUSES } from "@/lib/constants";
-import ItemAvatar from "@/components/ItemAvatar";
+import ItemCard from "@/components/ItemCard";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Objets" };
 
 export default async function Objets({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
@@ -25,6 +27,7 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
     const s = p.toString();
     return s ? `/objets?${s}` : "/objets";
   };
+  const i13 = { size: 13, strokeWidth: 2.1, "aria-hidden": true } as const;
 
   return (
     <>
@@ -34,26 +37,27 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
           <div className="sub">{items.length} affiché{items.length > 1 ? "s" : ""}</div>
         </div>
         <div className="spacer" />
-        <Link className="btn sm primary" href="/objets/nouveau">＋</Link>
+        <Link className="btn primary" href="/objets/nouveau"><Plus size={18} strokeWidth={2.2} aria-hidden />Ajouter</Link>
       </div>
 
       <form className="search" action="/objets">
         {Object.entries(sp).filter(([k]) => k !== "q").map(([k, v]) => (
           <input key={k} type="hidden" name={k} value={v} />
         ))}
+        <Search size={18} strokeWidth={2} aria-hidden />
         <input name="q" defaultValue={sp.q ?? ""} placeholder="Chercher…" enterKeyHint="search" autoComplete="off" />
       </form>
 
       <div className="chips scroll">
-        <Link className={`chip ${sp.aRacheter === "1" ? "on" : ""}`} href={qs({ aRacheter: "1" })}>🛒 à racheter</Link>
+        <Link className={`chip ${sp.aRacheter === "1" ? "on" : ""}`} href={qs({ aRacheter: "1" })}><ShoppingCart {...i13} />à racheter</Link>
         <Link className={`chip ${filter.sansLot ? "on" : ""}`} href={qs({ sansLot: "1" })}>sans lot</Link>
         {lots.map((l) => (
-          <Link key={l.code} className={`chip ${sp.lot === l.code ? "on" : ""}`} href={qs({ lot: l.code })}>📦 {l.name}</Link>
+          <Link key={l.code} className={`chip ${sp.lot === l.code ? "on" : ""}`} href={qs({ lot: l.code })}><Package {...i13} />{l.name}</Link>
         ))}
       </div>
-      <div className="chips scroll">
+      <div className="chips scroll" style={{ marginTop: 6 }}>
         {projects.map((p) => (
-          <Link key={p.code} className={`chip ${sp.project === p.code ? "on" : ""}`} href={qs({ project: p.code })}>🎯 {p.name}</Link>
+          <Link key={p.code} className={`chip ${sp.project === p.code ? "on" : ""}`} href={qs({ project: p.code })}><Target {...i13} />{p.name}</Link>
         ))}
         {cats.map((c) => (
           <Link key={c} className={`chip ${sp.category === c ? "on" : ""}`} href={qs({ category: c })}>{c}</Link>
@@ -63,34 +67,18 @@ export default async function Objets({ searchParams }: { searchParams: Promise<R
         ))}
       </div>
 
-      <div style={{ height: 12 }} />
+      <div style={{ height: 16 }} />
 
-      {items.length === 0 && <div className="card center muted small">Aucun objet ne correspond.</div>}
-
-      {items.map((i) => (
-        <Link key={i.code} className="card tap" href={`/objets/${i.code}`}>
-          <div className="with-avatar">
-            <ItemAvatar code={i.code} photo={i.photo} category={i.category} />
-            <div>
-              <div className="card-title">
-                {i.name}
-                {i.qty !== 1 && <span className="muted small">× {i.qty} {i.unit}</span>}
-                <span className="spacer" style={{ marginLeft: "auto" }} />
-                {i.a_racheter ? <span className="chip warn">🛒</span> : null}
-                {i.status !== "ok" && (
-                  <span className={`chip ${i.status === "manquant" ? "bad" : "warn"}`}>{i.status}</span>
-                )}
-              </div>
-              <div className="card-sub">
-                {i.lot_name ? `📦 ${i.lot_name}` : "sans lot"}
-                {i.category && ` · ${i.category}`}
-                {i.projects && ` · 🎯 ${i.projects}`}
-              </div>
-              {i.description && <div className="card-desc">{i.description.slice(0, 120)}</div>}
-            </div>
-          </div>
-        </Link>
-      ))}
+      {items.length === 0 ? (
+        <div className="card empty">
+          <SearchX size={26} strokeWidth={1.6} aria-hidden />
+          Aucun objet ne correspond.
+        </div>
+      ) : (
+        <div className="cards">
+          {items.map((i) => <ItemCard key={i.code} item={i} desc />)}
+        </div>
+      )}
     </>
   );
 }

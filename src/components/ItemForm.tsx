@@ -20,7 +20,7 @@ export default function ItemForm({
   const cats = Array.from(new Set([...(item?.category ? [item.category] : []), ...CATEGORIES]));
 
   return (
-    <form action={action}>
+    <form action={action} className="card form-card" style={{ padding: 20 }}>
       {item && <input type="hidden" name="code" value={item.code} />}
 
       <div className="field">

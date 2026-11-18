@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Check, FlipVertical2, Minus, Plus, Printer, QrCode, Send, Tag } from "lucide-react";
 import { W, H, drawLandscape, toPortrait, printJobs, printerKind } from "@/lib/label";
 import { queueLabel } from "@/lib/print-actions";
 
@@ -55,7 +56,7 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
     setBusy(true);
     const canvas = toPortrait(ref.current!, flip);
     const res = await printJobs([{ id: 0, label: name, canvas, copies }], (m) => setMsg(m));
-    setMsg(res.error ? `Échec : ${res.error}` : "Imprimé ✓");
+    setMsg(res.error ? `Échec : ${res.error}` : "Imprimé.");
     setBusy(false);
   };
 
@@ -66,42 +67,42 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
 
   return (
     <div className="card">
-      <div className="row" style={{ marginBottom: 8 }}>
-        <span className="card-sub">Étiquette</span>
+      <div className="row" style={{ marginBottom: 12 }}>
+        <span className="section-title" style={{ margin: 0 }}><Tag size={14} aria-hidden />Étiquette</span>
         {lastPrinted && (
-          <span className="chip" style={{ marginLeft: "auto" }}>
-            déjà imprimée le {new Date(lastPrinted).toLocaleDateString("fr-FR")}
+          <span className="chip ok" style={{ marginLeft: "auto" }}>
+            <Check size={13} strokeWidth={2.4} aria-hidden />imprimée le {new Date(lastPrinted).toLocaleDateString("fr-FR")}
           </span>
         )}
       </div>
 
-      <div className="center">
+      <div className="center" style={{ padding: "10px 0 4px" }}>
         <div className="label-preview"><canvas ref={ref} width={W} height={H} /></div>
       </div>
 
-      <div className="row wrap" style={{ marginTop: 10 }}>
-        <button className="btn sm" onClick={() => setCopies(Math.max(1, copies - 1))}>−</button>
-        <span className="small muted">{copies} ex.</span>
-        <button className="btn sm" onClick={() => setCopies(Math.min(20, copies + 1))}>＋</button>
+      <div className="row wrap" style={{ marginTop: 14, justifyContent: "center" }}>
+        <button className="btn sm icon" aria-label="Un exemplaire de moins" onClick={() => setCopies(Math.max(1, copies - 1))}><Minus size={15} aria-hidden /></button>
+        <span className="small" style={{ minWidth: 44, textAlign: "center", fontWeight: 550 }}>{copies} ex.</span>
+        <button className="btn sm icon" aria-label="Un exemplaire de plus" onClick={() => setCopies(Math.min(20, copies + 1))}><Plus size={15} aria-hidden /></button>
         <button className="btn sm" onClick={() => toggle("barda.flip", !flip, setFlip)}>
-          {flip ? "Sens B" : "Sens A"}
+          <FlipVertical2 size={15} aria-hidden />{flip ? "Sens B" : "Sens A"}
         </button>
         <button className="btn sm" onClick={() => toggle("barda.qrLien", !urlMode, setUrlMode)}>
-          {urlMode ? "QR lien (plus fragile)" : "QR robuste"}
+          <QrCode size={15} aria-hidden />{urlMode ? "QR lien (plus fragile)" : "QR robuste"}
         </button>
       </div>
 
       <button className="btn primary wide" onClick={() => addToBasket("file")} disabled={busy}
-              style={{ marginTop: 10 }}>
-        {busy ? "…" : "＋ Ajouter à la file"}
+              style={{ marginTop: 14 }}>
+        {busy ? "…" : <><Plus size={18} strokeWidth={2.2} aria-hidden />Ajouter à la file</>}
       </button>
 
       <div className="row" style={{ marginTop: 8 }}>
         {kind !== "aucun" && (
-          <button className="btn wide" onClick={printNow} disabled={busy}>Imprimer maintenant</button>
+          <button className="btn wide" onClick={printNow} disabled={busy}><Printer size={16} aria-hidden />Imprimer maintenant</button>
         )}
         <button className="btn wide" onClick={() => addToBasket("relais")} disabled={busy}>
-          Envoyer au Mac
+          <Send size={16} aria-hidden />Envoyer au Mac
         </button>
       </div>
 

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft, Trash2 } from "lucide-react";
 import ItemForm from "@/components/ItemForm";
 import { deleteItem, updateItem } from "@/lib/actions";
 import { getItemByCode, itemProjectIds, listLots, listProjects } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Modifier" };
 
 export default async function ModifierObjet({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -13,7 +15,7 @@ export default async function ModifierObjet({ params }: { params: Promise<{ code
 
   return (
     <>
-      <Link className="back" href={`/objets/${item.code}`}>‹ {item.name}</Link>
+      <Link className="back" href={`/objets/${item.code}`}><ChevronLeft size={16} aria-hidden />{item.name}</Link>
       <div className="topbar"><h1>Modifier</h1></div>
 
       <ItemForm
@@ -25,10 +27,9 @@ export default async function ModifierObjet({ params }: { params: Promise<{ code
         submitLabel="Enregistrer"
       />
 
-      <hr className="sep" />
-      <form action={deleteItem}>
+      <form action={deleteItem} className="form-card" style={{ marginTop: 24 }}>
         <input type="hidden" name="code" value={item.code} />
-        <button className="btn danger wide" type="submit">Supprimer cet objet</button>
+        <button className="btn danger wide" type="submit"><Trash2 size={16} aria-hidden />Supprimer cet objet</button>
       </form>
     </>
   );

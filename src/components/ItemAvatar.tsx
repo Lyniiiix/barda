@@ -1,8 +1,8 @@
-import { iconFor } from "@/lib/constants";
+import { CategoryIcon } from "./icons";
 
 /** La photo si elle existe, sinon l'icône de la catégorie. Jamais un trou. */
 export default function ItemAvatar({
-  code, photo, category, size = 44,
+  code, photo, category, size = 46,
 }: { code: string; photo: string; category: string; size?: number }) {
   if (photo) {
     return (
@@ -17,8 +17,8 @@ export default function ItemAvatar({
     );
   }
   return (
-    <span className="avatar icon" style={{ width: size, height: size, fontSize: size * 0.5 }}>
-      {iconFor(category)}
+    <span className="avatar icon" style={{ width: size, height: size }}>
+      <CategoryIcon category={category} size={Math.round(size * 0.46)} />
     </span>
   );
 }

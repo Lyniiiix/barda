@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { Ban, Check, X } from "lucide-react";
 import { kindOf } from "@/lib/codes";
 import type { LogEntry } from "@/lib/print";
 
-const LOOK: Record<LogEntry["outcome"], { chip: string; icon: string }> = {
-  "imprimé": { chip: "ok", icon: "✓" },
-  "échec": { chip: "bad", icon: "✕" },
-  "annulé": { chip: "warn", icon: "⊘" },
+const LOOK: Record<LogEntry["outcome"], { chip: string; Icon: typeof Check }> = {
+  "imprimé": { chip: "ok", Icon: Check },
+  "échec": { chip: "bad", Icon: X },
+  "annulé": { chip: "warn", Icon: Ban },
 };
 
 const fiche = (code: string) => {
@@ -23,10 +24,10 @@ export default function LogRow({ entry }: { entry: LogEntry }) {
   const href = fiche(entry.code);
 
   return (
-    <div className="card">
+    <div style={{ padding: "10px 0", borderTop: "1px solid var(--line)" }}>
       <div className="row">
-        <span className={`chip ${look.chip}`}>{look.icon} {entry.outcome}</span>
-        <span className="small">
+        <span className={`chip ${look.chip}`}><look.Icon size={13} strokeWidth={2.4} aria-hidden />{entry.outcome}</span>
+        <span className="small" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {href ? <Link href={href} style={{ color: "var(--accent)" }}>{entry.label}</Link> : entry.label}
           {entry.copies > 1 && <span className="muted"> × {entry.copies}</span>}
         </span>

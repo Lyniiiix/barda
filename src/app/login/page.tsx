@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { expectedPassword, makeToken } from "@/lib/auth";
+import Wordmark from "@/components/Wordmark";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Connexion" };
 
 async function login(fd: FormData) {
   "use server";
@@ -23,10 +25,13 @@ async function login(fd: FormData) {
 export default async function Login({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   return (
-    <div style={{ paddingTop: "22vh" }}>
-      <h1 style={{ fontSize: 28, marginBottom: 4 }}>Barda</h1>
-      <p className="muted small" style={{ marginTop: 0 }}>Inventaire du matériel.</p>
-      <form action={login}>
+    <div style={{ minHeight: "70dvh", display: "grid", placeItems: "center" }}>
+      <form action={login} className="card glass" style={{ width: "100%", maxWidth: 400, padding: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+          <img src="/icon.svg" alt="" width={44} height={44} style={{ borderRadius: 11 }} />
+          <Wordmark size={34} />
+        </div>
+        <p className="muted small" style={{ marginTop: 0, marginBottom: 22 }}>Inventaire du matériel.</p>
         <input type="hidden" name="next" value={sp.next ?? "/"} />
         <div className="field">
           <label>Mot de passe</label>
@@ -35,8 +40,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
         {sp.e === "1" && <p className="small" style={{ color: "var(--bad)" }}>Mot de passe incorrect.</p>}
         {sp.e === "2" && (
           <p className="small" style={{ color: "var(--bad)" }}>
-            `BARDA_PASSWORD` n&apos;est pas défini côté serveur — personne ne peut entrer tant que
-            la variable n&apos;est pas posée dans Coolify.
+            <span className="code">BARDA_PASSWORD</span> n&apos;est pas défini côté serveur : personne ne peut
+            entrer tant que la variable n&apos;est pas posée.
           </p>
         )}
         <button className="btn primary wide" type="submit">Entrer</button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Laptop, Minus, Plus, Send, Smartphone, Trash2, Undo2 } from "lucide-react";
 import { kindOf } from "@/lib/codes";
 import { moveJobTo, removeJob, setJobCopies } from "@/lib/print-actions";
 
@@ -20,6 +21,7 @@ const fiche = (code: string) => {
 export default function JobCard({ job, archive = false }: { job: Job; archive?: boolean }) {
   const href = fiche(job.code);
   const confiee = job.state === "relais";
+  const i13 = { size: 13, strokeWidth: 2.1, "aria-hidden": true } as const;
 
   return (
     <div className="card">
@@ -30,17 +32,15 @@ export default function JobCard({ job, archive = false }: { job: Job; archive?: 
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-title">
-            {href ? <Link href={href} style={{ color: "var(--accent)" }}>{job.label}</Link> : job.label}
+            {href ? <Link className="name" href={href}>{job.label}</Link> : <span className="name">{job.label}</span>}
           </div>
           <div className="card-sub code">{job.code || "—"}</div>
 
           <div className="chips">
-            <span className={`chip ${confiee ? "warn" : "on"}`}>
-              {confiee ? "💻 confiée au Mac" : "📱 à imprimer d’ici"}
+            <span className={`chip ${confiee ? "warn" : ""}`}>
+              {confiee ? <><Laptop {...i13} />confiée au Mac</> : <><Smartphone {...i13} />à imprimer d’ici</>}
             </span>
-            <span className="chip">
-              {job.copies} exemplaire{job.copies > 1 ? "s" : ""}
-            </span>
+            <span className="chip">{job.copies} exemplaire{job.copies > 1 ? "s" : ""}</span>
             {archive && job.printed_at && (
               <span className="chip ok">
                 sortie le {new Date(job.printed_at).toLocaleString("fr-FR", {
@@ -51,29 +51,29 @@ export default function JobCard({ job, archive = false }: { job: Job; archive?: 
           </div>
 
           {!archive && (
-            <div className="row wrap" style={{ marginTop: 10 }}>
+            <div className="row wrap" style={{ marginTop: 12 }}>
               <form action={setJobCopies}>
                 <input type="hidden" name="id" value={job.id} />
                 <input type="hidden" name="copies" value={job.copies - 1} />
-                <button className="btn sm" type="submit" disabled={job.copies <= 1}>−</button>
+                <button className="btn sm icon" type="submit" disabled={job.copies <= 1} aria-label="Un exemplaire de moins"><Minus size={15} aria-hidden /></button>
               </form>
               <form action={setJobCopies}>
                 <input type="hidden" name="id" value={job.id} />
                 <input type="hidden" name="copies" value={job.copies + 1} />
-                <button className="btn sm" type="submit" disabled={job.copies >= 20}>＋</button>
+                <button className="btn sm icon" type="submit" disabled={job.copies >= 20} aria-label="Un exemplaire de plus"><Plus size={15} aria-hidden /></button>
               </form>
 
               <form action={moveJobTo}>
                 <input type="hidden" name="id" value={job.id} />
                 <input type="hidden" name="target" value={confiee ? "file" : "relais"} />
                 <button className="btn sm" type="submit">
-                  {confiee ? "↩ Reprendre" : "→ Confier au Mac"}
+                  {confiee ? <><Undo2 size={15} aria-hidden />Reprendre</> : <><Send size={15} aria-hidden />Confier au Mac</>}
                 </button>
               </form>
 
               <form action={removeJob} style={{ marginLeft: "auto" }}>
                 <input type="hidden" name="id" value={job.id} />
-                <button className="btn sm danger" type="submit">Supprimer</button>
+                <button className="btn sm danger" type="submit"><Trash2 size={15} aria-hidden />Supprimer</button>
               </form>
             </div>
           )}

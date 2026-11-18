@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Camera, ClipboardPaste, Link2, Sparkles } from "lucide-react";
 
 const MAX_SIDE = 1024;
 
@@ -101,21 +102,21 @@ export default function PhotoPicker({
 
       <div className="row wrap">
         <button className="btn sm" onClick={() => input.current?.click()} disabled={busy}>
-          📷 {hasPhoto ? "Changer" : "Photo"}
+          <Camera size={15} aria-hidden />{hasPhoto ? "Changer" : "Photo"}
         </button>
-        <button className="btn sm" onClick={paste} disabled={busy}>📋 Coller</button>
-        <button className="btn sm" onClick={() => setPanel(panel === "url" ? "none" : "url")}>🔗 Adresse</button>
-        <button className="btn sm" onClick={search} disabled={busy}>🔍 Suggérer</button>
+        <button className="btn sm" onClick={paste} disabled={busy}><ClipboardPaste size={15} aria-hidden />Coller</button>
+        <button className="btn sm" onClick={() => setPanel(panel === "url" ? "none" : "url")}><Link2 size={15} aria-hidden />Adresse</button>
+        <button className="btn sm" onClick={search} disabled={busy}><Sparkles size={15} aria-hidden />Suggérer</button>
       </div>
 
       {panel === "url" && (
         <div className="row" style={{ marginTop: 8 }}>
           <input
+            className="input"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…/image.jpg"
-            style={{ flex: 1, background: "var(--bg-elev)", border: "1px solid var(--line)",
-                     borderRadius: 10, padding: "9px 10px", fontSize: 16 }}
+            style={{ flex: 1, padding: "8px 11px" }}
           />
           <button className="btn sm primary" disabled={busy || !url}
                   onClick={() => send({ url }, "Récupération…")}>OK</button>

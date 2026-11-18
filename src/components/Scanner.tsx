@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
+import { Eye, Flashlight, Minus, Package, Plus } from "lucide-react";
 import { assignItemToLot } from "@/lib/actions";
 import { kindOf, parseScan } from "@/lib/codes";
 
@@ -152,7 +153,13 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
       setToast({ kind: "bad", text: "Choisir d'abord un lot cible." });
       return;
     }
-    await assignItemToLot(code, targetLot);
+    try {
+      await assignItemToLot(code, targetLot);
+    } catch {
+      // Refusé par le serveur : sur la démo publique, rien ne s'enregistre.
+      setToast({ kind: "bad", text: "Rangement refusé par le serveur (démo en lecture seule ?)." });
+      return;
+    }
     setCount((c) => c + 1);
     setToast({
       kind: "ok",
@@ -164,14 +171,17 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
 
   return (
     <>
-      <div className="row" style={{ marginBottom: 10 }}>
-        <button className={`btn sm ${mode === "voir" ? "primary" : ""}`} onClick={() => setMode("voir")}>Consulter</button>
-        <button className={`btn sm ${mode === "ranger" ? "primary" : ""}`} onClick={() => setMode("ranger")}>Ranger</button>
+      <div className="row wrap" style={{ marginBottom: 12, maxWidth: 560, marginInline: "auto" }}>
+        <div className="segmented" role="tablist">
+          <button className={mode === "voir" ? "on" : ""} onClick={() => setMode("voir")}><Eye size={15} aria-hidden />Consulter</button>
+          <button className={mode === "ranger" ? "on" : ""} onClick={() => setMode("ranger")}><Package size={15} aria-hidden />Ranger</button>
+        </div>
         {mode === "ranger" && (
           <select
+            className="input"
             value={lot}
             onChange={(e) => setLot(e.target.value)}
-            style={{ flex: 1, background: "var(--bg-elev)", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 10px", fontSize: 16 }}
+            style={{ flex: 1, minWidth: 160, padding: "8px 11px" }}
           >
             <option value="">— lot cible —</option>
             {lots.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
@@ -193,14 +203,14 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
             <div className="scan-tools">
               {torch !== null && (
                 <button className={`btn sm ${torch ? "primary" : ""}`} onClick={toggleTorch}>
-                  {torch ? "🔦 Torche allumée" : "🔦 Torche"}
+                  <Flashlight size={15} aria-hidden />{torch ? "Torche allumée" : "Torche"}
                 </button>
               )}
               {zoom && (
                 <>
-                  <button className="btn sm" onClick={() => applyZoom(zoom.value - (zoom.max - zoom.min) / 8)}>−</button>
+                  <button className="btn sm icon" aria-label="Dézoomer" onClick={() => applyZoom(zoom.value - (zoom.max - zoom.min) / 8)}><Minus size={15} aria-hidden /></button>
                   <span className="chip">× {zoom.value.toFixed(1)}</span>
-                  <button className="btn sm" onClick={() => applyZoom(zoom.value + (zoom.max - zoom.min) / 8)}>＋</button>
+                  <button className="btn sm icon" aria-label="Zoomer" onClick={() => applyZoom(zoom.value + (zoom.max - zoom.min) / 8)}><Plus size={15} aria-hidden /></button>
                 </>
               )}
             </div>
@@ -215,7 +225,7 @@ export default function Scanner({ lots, initialLot }: { lots: Lot[]; initialLot?
       </p>
 
       {toast && (
-        <div className={`toast ${toast.kind}`} onClick={() => setToast(null)}>
+        <div className={`toast glass ${toast.kind}`} onClick={() => setToast(null)}>
           <div className="row">
             <span className="small">{toast.text}</span>
             {toast.href && (
