@@ -63,8 +63,46 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLine
   return lines;
 }
 
+/*
+ * Calage de l'impression le long du papier. Une imprimante qui démarre un peu à côté du
+ * bord coupe un côté de l'étiquette (sur la D11s, le QR). Le réglage est physique : il est
+ * gardé en mm, positif vers la droite en sens A. Comme le sens B retourne l'étiquette, la
+ * même correction s'y lit dans l'autre sens : `readingOffsetMm` en tient compte, pour que
+ * l'aperçu montre exactement ce qui sortira.
+ */
+const OFFSET_KEY = "barda.decalage";
+export const OFFSET_STEP_MM = 0.5;
+const OFFSET_RANGE_MM = { min: -4, max: 6 };
+
+function stored(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+/** Le calage en vigueur : celui réglé dans ce navigateur, sinon celui du modèle. */
+export function feedOffsetMm(): number {
+  const v = stored(OFFSET_KEY);
+  return v !== null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : MODEL.feedOffsetMm ?? 0;
+}
+
+/** Règle le calage à partir de ce qu'on voit sur l'étiquette dans le sens choisi. */
+export function setReadingOffsetMm(reading: number, flip: boolean) {
+  const v = Math.min(OFFSET_RANGE_MM.max, Math.max(OFFSET_RANGE_MM.min, reading));
+  try { localStorage.setItem(OFFSET_KEY, String(flip ? -v : v)); } catch { /* navigation privée */ }
+}
+
+/** Le calage tel qu'il se lit sur l'étiquette : vers la droite si positif. */
+export function readingOffsetMm(flip: boolean): number {
+  return flip ? -feedOffsetMm() : feedOffsetMm();
+}
+
+/** Le sens choisi (A ou B), gardé dans le navigateur comme le calage. */
+export function storedFlip(): boolean {
+  return stored("barda.flip") === "1";
+}
+
 export async function drawLandscape(
   canvas: HTMLCanvasElement, code: string, name: string, sub: string, qrUrlMode: boolean,
+  offsetMm = 0,
 ) {
   canvas.width = W;
   canvas.height = H;
@@ -85,7 +123,12 @@ export async function drawLandscape(
 
   // Le QR prend toute la hauteur utile : sur une étiquette de 12 mm, chaque
   // pixel de module gagné compte quand le support est plié ou sali.
-  const MARGIN = px(6);           // marge gauche : sans elle on imprime dans le bord
+  // Le calage délimite la bande qui sortira vraiment sur l'étiquette : vers la droite, elle
+  // perd le début ; vers la gauche, la fin. Tout le contenu tient dans cette bande.
+  const dx = Math.round((offsetMm / 25.4) * MODEL.dpi);
+  const left = Math.max(0, dx);
+  const right = W - Math.max(0, -dx);
+  const MARGIN = left + px(6);    // marge gauche : sans elle on imprime dans le bord
   const box = H - px(6);          // 90 px sur 96
   const scale = Math.max(1, Math.floor(box / size));
   const qrPx = size * scale;
@@ -100,7 +143,7 @@ export async function drawLandscape(
   }
 
   const tx = MARGIN + box + px(7);
-  const tw = W - tx - px(5);
+  const tw = right - tx - px(5);
 
   // Ordre de priorité tenu à la lettre : le QR a déjà pris sa place, le code
   // réserve la sienne, et le libellé se contente de ce qui reste — quitte à

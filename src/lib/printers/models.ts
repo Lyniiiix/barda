@@ -18,6 +18,9 @@ export const PRINTERS = {
     density: { min: 0, max: 2, default: 2 },
     transports: ["web-bluetooth", "native", "relay"],
     bluetoothNames: ["FICHERO", "D11s_"],
+    // Mesuré le 2026-11-18 sur étiquettes 12 × 30 mm : sans calage, environ 20 % du QR
+    // (2 mm) sortait hors du bord gauche.
+    feedOffsetMm: 2.5,
   },
 } satisfies Record<string, PrinterModel>;
 

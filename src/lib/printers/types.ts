@@ -42,6 +42,12 @@ export type PrinterModel = {
   transports: Transport[];
   /** Préfixes du nom Bluetooth annoncé, pour reconnaître l'appareil au scan. */
   bluetoothNames?: string[];
+  /**
+   * Décalage de calage par défaut, en mm, le long du papier : positif, le contenu part
+   * vers la droite de l'étiquette lue en sens A. Corrige une imprimante qui démarre un peu
+   * à côté du bord ; chacun l'affine ensuite sur sa machine (réglage gardé dans le navigateur).
+   */
+  feedOffsetMm?: number;
 };
 
 /** Une étiquette tramée : 1 bit par point, noir = 1, ligne après ligne. */

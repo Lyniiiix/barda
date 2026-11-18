@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, FlipVertical2, Minus, Plus, Printer, QrCode, Send, Tag } from "lucide-react";
-import { W, H, drawLandscape, toPortrait, printJobs, printerKind } from "@/lib/label";
+import {
+  Check, ChevronLeft, ChevronRight, FlipVertical2, Minus, Plus, Printer, QrCode, Send, Tag,
+} from "lucide-react";
+import {
+  W, H, OFFSET_STEP_MM, drawLandscape, readingOffsetMm, setReadingOffsetMm, storedFlip, toPortrait,
+  printJobs, printerKind,
+} from "@/lib/label";
 import { queueLabel } from "@/lib/print-actions";
 
 type Props = { code: string; name: string; sub?: string; lastPrinted?: string | null };
@@ -17,16 +22,25 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
   const [urlMode, setUrlMode] = useState(false);
   const [kind, setKind] = useState<"native" | "bluetooth" | "aucun">("aucun");
   const [basket, setBasket] = useState<number | null>(null);
+  const [offset, setOffset] = useState<number | null>(null); // calage lu sur l'étiquette, en mm
 
   useEffect(() => {
     setKind(printerKind());
-    setFlip(localStorage.getItem("barda.flip") === "1");
+    setFlip(storedFlip());
     setUrlMode(localStorage.getItem("barda.qrLien") === "1");
   }, []);
 
+  // Le calage se lit dans le sens choisi : changer de sens le retourne aussi.
+  useEffect(() => { setOffset(readingOffsetMm(flip)); }, [flip]);
+
+  const nudge = (deltaMm: number) => {
+    setReadingOffsetMm((offset ?? 0) + deltaMm, flip);
+    setOffset(readingOffsetMm(flip));
+  };
+
   const redraw = useCallback(async () => {
-    if (ref.current) await drawLandscape(ref.current, code, name, sub, urlMode);
-  }, [code, name, sub, urlMode]);
+    if (ref.current && offset !== null) await drawLandscape(ref.current, code, name, sub, urlMode, offset);
+  }, [code, name, sub, urlMode, offset]);
 
   useEffect(() => { void redraw(); }, [redraw]);
 
@@ -89,6 +103,19 @@ export default function LabelButton({ code, name, sub = "", lastPrinted = null }
         </button>
         <button className="btn sm" onClick={() => toggle("barda.qrLien", !urlMode, setUrlMode)}>
           <QrCode size={15} aria-hidden />{urlMode ? "QR lien (plus fragile)" : "QR robuste"}
+        </button>
+      </div>
+
+      {/* Calage : si l'imprimante coupe un bord, on décale tout le contenu. */}
+      <div className="row" style={{ marginTop: 8, justifyContent: "center", gap: 6 }}>
+        <button className="btn sm icon" aria-label="Décaler vers la gauche" onClick={() => nudge(-OFFSET_STEP_MM)}>
+          <ChevronLeft size={16} aria-hidden />
+        </button>
+        <span className="small" style={{ minWidth: 112, textAlign: "center" }}>
+          calage {offset === null ? "…" : `${offset > 0 ? "+" : ""}${offset.toLocaleString("fr-FR")} mm`}
+        </span>
+        <button className="btn sm icon" aria-label="Décaler vers la droite" onClick={() => nudge(OFFSET_STEP_MM)}>
+          <ChevronRight size={16} aria-hidden />
         </button>
       </div>
 

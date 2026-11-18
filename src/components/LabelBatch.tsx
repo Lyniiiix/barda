@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, Tags } from "lucide-react";
-import { drawLandscape, toPortrait } from "@/lib/label";
+import { drawLandscape, readingOffsetMm, storedFlip, toPortrait } from "@/lib/label";
 import { queueLabel } from "@/lib/print-actions";
 
 type Item = { code: string; name: string; sub: string; printed: boolean };
@@ -26,12 +26,13 @@ export default function LabelBatch({ items }: { items: Item[] }) {
     setState("en cours");
     setDone(0);
     setError("");
-    const flip = localStorage.getItem("barda.flip") === "1";
+    const flip = storedFlip();
     const urlMode = localStorage.getItem("barda.qrLien") === "1";
+    const offset = readingOffsetMm(flip);
     const canvas = document.createElement("canvas");
     try {
       for (const it of todo) {
-        await drawLandscape(canvas, it.code, it.name, it.sub, urlMode);
+        await drawLandscape(canvas, it.code, it.name, it.sub, urlMode, offset);
         const png = toPortrait(canvas, flip).toDataURL("image/png");
         await queueLabel(it.code, it.name, png, 1, "file");
         setDone((n) => n + 1);

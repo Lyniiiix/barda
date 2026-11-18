@@ -99,6 +99,11 @@ Le scanner intégré (`/scan`) sert à deux choses : **consulter** (scan, la fic
 **ranger** (on choisit un lot, puis on scanne les objets à la chaîne). Un code-barres de
 fabricant inconnu propose de créer l'objet avec ce code.
 
+**Calage.** Si l'imprimante coupe un bord de l'étiquette, les flèches sous l'aperçu décalent tout
+le contenu par pas de 0,5 mm, et l'aperçu montre exactement ce qui sortira. Le réglage est gardé
+dans le navigateur et vaut pour les deux sens ; la D11s part avec +2,5 mm, mesuré sur des
+étiquettes de 12 × 30 mm.
+
 ### La file d'impression
 
 Un bouton qui imprime au premier appui coûte cher : un double appui, une étiquette de trop. Le
@@ -137,6 +142,7 @@ BARDA_URL=https://barda.example.com BARDA_PRINT_TOKEN=… npm run spool
    - le `name` affiché, le `dpi`, la largeur de tête `headDots` et `bytesPerRow` ;
    - les formats d'étiquette dans `labels` (largeur dans le sens de la tête, longueur dans le sens du papier) ;
    - la plage de `density` et les `transports` réellement pris en charge.
+   - au besoin `feedOffsetMm`, le calage par défaut si la machine démarre à côté du bord.
 
    Le rendu s'adapte seul : la hauteur de l'étiquette suit le modèle, le gabarit garde ses proportions.
 2. **Navigateur** : écrire un pilote `src/lib/printers/<id>.ts` qui renvoie un `PrinterDriver`.

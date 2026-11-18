@@ -69,10 +69,11 @@ export function pngOf(id: number): string | null {
 /** Date de dernière impression d'une étiquette, pour ne pas la refaire sans le savoir. */
 export function lastPrinted(code: string): string | null {
   if (!code) return null;
+  // Une étiquette sortie quitte la file (markPrinted) : sa trace est au journal.
   const r = db.prepare(
-    "SELECT printed_at FROM print_queue WHERE code = ? AND state = 'imprimé' ORDER BY printed_at DESC LIMIT 1",
+    "SELECT at FROM print_log WHERE code = ? AND outcome = 'imprimé' ORDER BY at DESC LIMIT 1",
   ).get(code);
-  return r ? row<{ printed_at: string | null }>(r).printed_at : null;
+  return r ? row<{ at: string }>(r).at : null;
 }
 
 export type AddResult = { id: number; deja: boolean; total: number };
@@ -165,6 +166,6 @@ export function sendBasketToRelay(): number {
 /** Les codes qui ont déjà une étiquette sortie : pour n'imprimer en série que ce qui manque. */
 export function printedCodes(): Set<string> {
   return new Set(rows<{ code: string }>(
-    db.prepare("SELECT DISTINCT code FROM print_queue WHERE state = 'imprimé' AND code <> ''").all(),
+    db.prepare("SELECT DISTINCT code FROM print_log WHERE outcome = 'imprimé' AND code <> ''").all(),
   ).map((r) => r.code));
 }
