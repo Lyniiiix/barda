@@ -31,6 +31,8 @@ const ITEM_SELECT = `
 export type ItemFilter = {
   q?: string; lot?: string; project?: string; category?: string; status?: string;
   sansLot?: boolean; aRacheter?: boolean;
+  /** Date d'achat exacte (AAAA-MM-JJ) : tout ce qui est arrivé dans une même commande. */
+  achat?: string;
 };
 
 /**
@@ -56,6 +58,7 @@ export function listItems(f: ItemFilter = {}): ItemRow[] {
   if (f.aRacheter) where.push(RESTOCK_SQL);
   if (f.category) { where.push("i.category = ?"); args.push(f.category); }
   if (f.status) { where.push("i.status = ?"); args.push(f.status); }
+  if (f.achat) { where.push("i.bought_at = ?"); args.push(f.achat); }
   if (f.project) {
     where.push("EXISTS (SELECT 1 FROM item_projects ip JOIN projects p ON p.id = ip.project_id WHERE ip.item_id = i.id AND p.code = ?)");
     args.push(f.project);
@@ -147,4 +150,11 @@ export function exportAll() {
       db.prepare("SELECT * FROM item_projects").all(),
     ),
   };
+}
+
+/** Les dernières dates d'achat : une date, c'est en pratique une commande reçue. */
+export function purchaseDates(limit = 6): { date: string; n: number }[] {
+  return rows<{ date: string; n: number }>(db.prepare(
+    "SELECT bought_at AS date, COUNT(*) AS n FROM items WHERE bought_at <> '' GROUP BY bought_at ORDER BY bought_at DESC LIMIT ?",
+  ).all(limit));
 }

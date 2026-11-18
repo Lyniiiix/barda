@@ -161,3 +161,10 @@ export function sendBasketToRelay(): number {
   // node:sqlite peut rendre un bigint sur `changes`.
   return Number(db.prepare("UPDATE print_queue SET state = 'relais' WHERE state = 'file'").run().changes);
 }
+
+/** Les codes qui ont déjà une étiquette sortie : pour n'imprimer en série que ce qui manque. */
+export function printedCodes(): Set<string> {
+  return new Set(rows<{ code: string }>(
+    db.prepare("SELECT DISTINCT code FROM print_queue WHERE state = 'imprimé' AND code <> ''").all(),
+  ).map((r) => r.code));
+}
