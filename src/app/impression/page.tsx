@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, History, Laptop, Printer, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, Laptop, Printer, Tags, Trash2 } from "lucide-react";
 import JobCard from "@/components/JobCard";
 import LogRow from "@/components/LogRow";
 import PrintNow from "@/components/PrintNow";
-import { basket, countLabels, history, historyCounts, sentToRelay } from "@/lib/print";
+import { basket, countLabels, history, historyCounts, printedCodes, sentToRelay } from "@/lib/print";
+import { listItems, purchaseDates } from "@/lib/queries";
 import { clearPrintBasket, sendBasketToRelay } from "@/lib/print-actions";
 import { activePrinter } from "@/lib/printers/models";
 
@@ -18,6 +19,17 @@ export default function Impression() {
   const total = countLabels("file");
   const totalRelais = countLabels("relais");
   const imprimante = activePrinter();
+
+  // La dernière commande reçue dont des objets n'ont pas encore d'étiquette : c'est souvent
+  // ce qu'on vient imprimer quand la file est vide.
+  const imprimes = printedCodes();
+  const enFile = new Set([...jobs, ...relais].map((j) => j.code));
+  const commande = purchaseDates(4)
+    .map((c) => {
+      const objets = listItems({ achat: c.date });
+      return { ...c, sans: objets.filter((i) => !imprimes.has(i.code) && !enFile.has(i.code)).length };
+    })
+    .find((c) => c.sans > 0);
 
   return (
     <>
@@ -41,6 +53,19 @@ export default function Impression() {
               <Printer size={26} strokeWidth={1.6} aria-hidden />
               La file est vide. Sur la fiche d&apos;un objet ou d&apos;un lot, « Ajouter à la file ».
             </div>
+          )}
+
+          {commande && (
+            <Link className="card tap accent" href={`/objets?achat=${commande.date}`}>
+              <div className="card-title">
+                <Tags size={18} strokeWidth={2} aria-hidden />
+                Commande reçue le {new Date(commande.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                <ChevronRight size={18} style={{ marginLeft: "auto" }} aria-hidden />
+              </div>
+              <div className="card-sub">
+                {commande.sans} objet{commande.sans > 1 ? "s" : ""} sans étiquette sur {commande.n}. Les ajouter à la file d&apos;un coup.
+              </div>
+            </Link>
           )}
 
           {jobs.length > 0 && (
