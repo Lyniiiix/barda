@@ -1,15 +1,26 @@
 "use client";
 
 import QRCode from "qrcode";
-import { ImageEncoder, instantiateClient, LabelType, type FicheroClient } from "@/lib/fichero";
-import { hasNativePrinter, nativeCall, toBase64 } from "@/lib/native";
+import {
+  activePrinter, driverFor, encodeRaster, labelDots, printerPath, type PrinterPath,
+} from "@/lib/printers";
 
 /** Rendu et impression d'étiquettes — partagé par la fiche d'un objet et la file. */
 
-export const W = 240; // 30 mm à 203 dpi
-export const H = 96;  // 12 mm = largeur de la tête d'impression
+/** L'imprimante pour laquelle on dessine : ses dimensions fixent celles de l'étiquette. */
+const MODEL = activePrinter();
+const SIZE = labelDots(MODEL);
 
-let shared: FicheroClient | null = null;
+export const W = SIZE.length; // D11s : 240 = 30 mm à 203 dpi
+export const H = SIZE.width;  // D11s : 96 = 12 mm, toute la largeur de la tête
+
+/**
+ * Le gabarit a été réglé à l'œil sur 96 points de haut. Une étiquette plus
+ * haute ou plus basse garde les mêmes proportions ; sur la D11s, k = 1 et rien
+ * ne bouge au pixel près.
+ */
+const k = H / 96;
+const px = (n: number) => Math.max(1, Math.round(n * k));
 
 /** Le codeur ne retient que le noir pur : tout gris d'anticrénelage serait perdu. */
 export function threshold(ctx: CanvasRenderingContext2D, w: number, h: number) {
@@ -74,8 +85,8 @@ export async function drawLandscape(
 
   // Le QR prend toute la hauteur utile : sur une étiquette de 12 mm, chaque
   // pixel de module gagné compte quand le support est plié ou sali.
-  const MARGIN = 6;               // marge gauche : sans elle on imprime dans le bord
-  const box = H - 6;              // 90 px sur 96
+  const MARGIN = px(6);           // marge gauche : sans elle on imprime dans le bord
+  const box = H - px(6);          // 90 px sur 96
   const scale = Math.max(1, Math.floor(box / size));
   const qrPx = size * scale;
   const ox = MARGIN + Math.floor((box - qrPx) / 2);
@@ -88,27 +99,28 @@ export async function drawLandscape(
     }
   }
 
-  const tx = MARGIN + box + 7;
-  const tw = W - tx - 5;
+  const tx = MARGIN + box + px(7);
+  const tw = W - tx - px(5);
 
   // Ordre de priorité tenu à la lettre : le QR a déjà pris sa place, le code
   // réserve la sienne, et le libellé se contente de ce qui reste — quitte à
   // rétrécir ou à être coupé. C'est le seul des trois qu'on peut sacrifier.
-  const codeSize = 17;
-  const subSize = sub ? 12 : 0;
-  const reserve = codeSize + 3 + (subSize ? subSize + 2 : 0);
-  const dispo = H - reserve - 6;
+  const codeSize = px(17);
+  const subSize = sub ? px(12) : 0;
+  const gap = px(2);
+  const reserve = codeSize + px(3) + (subSize ? subSize + gap : 0);
+  const dispo = H - reserve - px(6);
 
-  let nameSize = fitFont(ctx, name, tw, 22);
+  let nameSize = fitFont(ctx, name, tw, px(22));
   let lines = wrap(ctx, name, tw, 3);
   // On réduit tant que le libellé déborde de la place laissée par les deux autres.
-  while (nameSize > 9 && lines.length * (nameSize + 2) > dispo) {
+  while (nameSize > 9 && lines.length * (nameSize + gap) > dispo) {
     nameSize -= 1;
     ctx.font = `700 ${nameSize}px -apple-system, Helvetica, Arial, sans-serif`;
-    lines = wrap(ctx, name, tw, Math.max(1, Math.floor(dispo / (nameSize + 2))));
+    lines = wrap(ctx, name, tw, Math.max(1, Math.floor(dispo / (nameSize + gap))));
   }
 
-  const lineH = nameSize + 2;
+  const lineH = nameSize + gap;
   const bloc = lines.length * lineH + reserve;
   let y = Math.max(nameSize, Math.floor((H - bloc) / 2) + nameSize);
 
@@ -122,15 +134,15 @@ export async function drawLandscape(
   if (sub) {
     ctx.font = `400 ${subSize}px -apple-system, Helvetica, Arial, sans-serif`;
     ctx.fillText(wrap(ctx, sub, tw, 1)[0] ?? "", tx, y);
-    y += subSize + 2;
+    y += subSize + gap;
   }
   ctx.font = `700 ${codeSize}px ui-monospace, Menlo, monospace`;
-  ctx.fillText(code, tx, Math.min(H - 2, y + codeSize - 3));
+  ctx.fillText(code, tx, Math.min(H - gap, y + codeSize - px(3)));
 
   threshold(ctx, W, H);
 }
 
-/** Pivote vers le sens de la tête d'impression : 96 px de large, 240 de long. */
+/** Pivote vers le sens de la tête d'impression : H points de large, W de long. */
 export function toPortrait(src: HTMLCanvasElement, flip: boolean): HTMLCanvasElement {
   const out = document.createElement("canvas");
   out.width = H;
@@ -171,11 +183,13 @@ export function canvasFromPng(dataUrl: string): Promise<HTMLCanvasElement> {
 export type PrintJob = { id: number; label: string; canvas: HTMLCanvasElement; copies: number };
 export type PrintOutcome = { done: number[]; error?: string };
 
-export function printerKind(): "native" | "bluetooth" | "aucun" {
-  if (hasNativePrinter()) return "native";
-  if (typeof navigator !== "undefined" && "bluetooth" in navigator) return "bluetooth";
-  return "aucun";
+/** Le chemin d'impression disponible ici pour l'imprimante active. */
+export function printerKind(): PrinterPath {
+  return printerPath(MODEL);
 }
+
+/** Nom de l'imprimante active, pour les messages. */
+export const printerName = MODEL.name;
 
 /**
  * Imprime une série d'étiquettes. La connexion n'est ouverte qu'une fois pour
@@ -187,47 +201,26 @@ export async function printJobs(
   onProgress: (message: string, doneIds: number[]) => void,
 ): Promise<PrintOutcome> {
   const done: number[] = [];
-  const kind = printerKind();
+  const path = printerKind();
 
-  if (kind === "aucun") return { done, error: "Ce navigateur ne peut pas parler à l'imprimante." };
+  if (path === "aucun") return { done, error: "Ce navigateur ne peut pas parler à l'imprimante." };
 
-  if (kind === "native") {
-    for (const [i, job] of jobs.entries()) {
-      onProgress(`${job.label} (${i + 1}/${jobs.length})`, [...done]);
-      const encoded = ImageEncoder.encodeCanvas(job.canvas, "top");
-      const res = await nativeCall({
-        action: "print", rows: encoded.rows, raster: toBase64(encoded.rowsData),
-        copies: job.copies, density: 2,
-      });
-      if (!res.ok) return { done, error: res.message };
-      done.push(job.id);
-      onProgress(`${job.label} ✓`, [...done]);
-    }
-    return { done };
-  }
-
+  const driver = driverFor(MODEL, path);
   try {
-    if (!shared) shared = instantiateClient();
-    onProgress("Connexion à l'imprimante…", []);
-    await shared.connect();
-    shared.stopHeartbeat();
+    await driver.connect((m) => onProgress(m, []));
 
     for (const [i, job] of jobs.entries()) {
       onProgress(`${job.label} (${i + 1}/${jobs.length})`, [...done]);
-      const task = shared.abstraction.newPrintTask("B1", {
-        totalPages: job.copies, density: 2, speed: 1, labelType: LabelType.WithGaps,
-        statusPollIntervalMs: 100, statusTimeoutMs: 8000,
+      await driver.print(encodeRaster(job.canvas, MODEL), {
+        copies: job.copies, density: MODEL.density.default,
       });
-      await task.printInit();
-      await task.printPage(ImageEncoder.encodeCanvas(job.canvas, "top"), job.copies);
-      await task.waitForFinished();
       done.push(job.id);
       onProgress(`${job.label} ✓`, [...done]);
     }
-    await shared.abstraction.printEnd();
+    await driver.end();
     return { done };
   } catch (e) {
-    shared = null;
+    driver.reset();
     return { done, error: e instanceof Error ? e.message : String(e) };
   }
 }
