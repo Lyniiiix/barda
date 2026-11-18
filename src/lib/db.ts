@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { seedDemo } from "./demo-seed";
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -140,6 +141,7 @@ function open(): DatabaseSync {
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
   migrate(db);
+  if (process.env.BARDA_DEMO === "1") seedDemo(db);
   return db;
 }
 
