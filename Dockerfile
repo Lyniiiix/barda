@@ -27,7 +27,7 @@ VOLUME /data
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3000/api/sante').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # L'entrypoint démarre en root le temps de réparer /data, puis passe en `nextjs`.
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

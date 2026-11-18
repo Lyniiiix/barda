@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, verifyToken } from "@/lib/auth";
 import { DEMO } from "@/lib/demo";
+import { CF_ACCESS, verifyAccessJwt } from "@/lib/cf-access";
 
 const refus = (message: string) =>
   NextResponse.json({ error: message }, { status: 403, headers: { "x-barda-demo": "1" } });
@@ -23,9 +24,21 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/print-queue") || pathname.startsWith("/api/mcp")) {
-    return NextResponse.next();
+  // Sonde de santé du conteneur : appelée en local, elle ne révèle rien.
+  if (pathname === "/api/sante") return NextResponse.next();
+
+  // Les deux accès machine ont leur propre jeton, vérifié par leur route.
+  const machine = pathname.startsWith("/api/print-queue") || pathname.startsWith("/api/mcp");
+
+  // Derrière Cloudflare Access : tout le reste exige un jeton Access valide, même la page
+  // de connexion. C'est ce qui ferme l'accès direct par l'IP de l'origine.
+  if (CF_ACCESS && !machine && !(await verifyAccessJwt(req.headers.get("cf-access-jwt-assertion")))) {
+    return new NextResponse("Accès réservé : passe par Cloudflare Access.", {
+      status: 403, headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   }
+
+  if (pathname.startsWith("/login") || machine) return NextResponse.next();
   if (await verifyToken(req.cookies.get(COOKIE_NAME)?.value)) return NextResponse.next();
 
   const url = req.nextUrl.clone();
